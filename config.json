@@ -1,0 +1,28 @@
+{
+    "host": "",
+    "port": null,
+    "keepalive": null,
+    "protocol": null,
+    "retain": false,
+    "clientId": "",
+    "cleanSession": true,
+
+    "topicReadPower": "",
+    "topicWriteLimit": "",
+    
+    "auth": {
+        "username": "",
+        "password": ""
+    },
+
+    "lastWill": {
+        "topic": "",
+        "payload": "",
+        "retain": false
+    },
+
+    "inverterCommandType": "absolute|relative",
+    "inverterMaxPower": 1200
+    
+
+}
