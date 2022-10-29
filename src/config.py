@@ -69,9 +69,9 @@ def config_from_json(path: str) -> AppConfig:
     if j_topic_write_limit is None or j_topic_write_limit == "":
         raise ValueError("Config: Invalid topicWriteLimit")
 
-    j_inverter_command_throttle: int = jf.get("inverter_command_throttle")
+    j_inverter_command_throttle: int = jf.get("inverterCommandThrottle")
     if j_inverter_command_throttle is None or type(j_inverter_command_throttle) is not int:
-        raise ValueError("Config: Invalid inverter_command_throttle")
+        raise ValueError("Config: Invalid inverterCommandThrottle")
 
     j_inverter_command_type = jf.get("inverterCommandType")
     e_inverter_command_type: InverterCommandType

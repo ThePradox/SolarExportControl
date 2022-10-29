@@ -11,16 +11,19 @@ class LimitCalculator:
         self.config: conf.AppConfig = config
         self.last_command_time: datetime = datetime.min
         self.last_command_value: float = config.inverter_max_power
+        self.last_command_has:bool = False
         self.command_max: float = config.inverter_max_power
         self.command_min: float = 0
 
-        deqSize: int = self.config.power_reading_smoothing_sample_size if self.config.power_reading_smoothing_sample_size > 0 else 1
-        self.__samples: Deque[float] = deque([], maxlen=deqSize)
+        deqSize: int = self.config.power_reading_smoothing_sample_size if self.config.power_reading_smoothing_sample_size > 0 else 1      
 
         if self.config.power_reading_smoothing == conf.PowerReadingSmoothingType.AVG:
             self.__sampleReading = self.__getSmoothingAvg
         else:
             self.__sampleReading = self.__getSmoothingNone
+            deqSize = 1
+
+        self.__samples: Deque[float] = deque([], maxlen=deqSize)
 
     def addReading(self, reading: float) -> float | None:
         logging.debug(f"New reading: {reading}")
@@ -38,12 +41,12 @@ class LimitCalculator:
         logging.debug(f"Overshoot is: {overshoot}")
 
         limit = self.__convertOvershotToLimit(overshoot)
-        logging.debug(f"Limit is: {overshoot}")
+        logging.debug(f"Limit is: {limit}")
 
         if limit is None:
             return None
 
-        if self.__limitIsMinDiff(limit) is not True:
+        if self.last_command_has and self.__limitIsMinDiff(limit) is not True:
             logging.debug("Limit is not over min diff")
             return None
 
@@ -57,6 +60,7 @@ class LimitCalculator:
         logging.debug(f"Command is: {command}")
         self.last_command_time = datetime.now()
         self.last_command_value = limit
+        self.last_command_has = True
 
         return command
 
@@ -64,6 +68,7 @@ class LimitCalculator:
         self.__samples.clear()
         self.last_command_time: datetime = datetime.min
         self.last_command_value: float = self.config.inverter_max_power
+        self.last_command_has:bool = False
 
     def __getSmoothingAvg(self, reading: float) -> float:
         self.__samples.append(reading)
