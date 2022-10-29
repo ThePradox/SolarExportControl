@@ -8,9 +8,15 @@ class InverterCommandType(Enum):
     RELATIVE = 2
 
 
+class PowerReadingSmoothingType(Enum):
+    NONE = 1,
+    AVG = 2
+
+
 class AppConfig:
     def __init__(self, host: str, topic_read_power: str, topic_write_limit: str,
-                 inverter_command_type: InverterCommandType, inverter_max_power: int,
+                 inverter_command_throttle: int, inverter_command_min_diff:float, inverter_command_type: InverterCommandType, inverter_max_power: int,
+                 power_reading_target:int, power_reading_smoothing: PowerReadingSmoothingType, power_reading_smoothing_sample_size: int,
                  last_will_topic: str | None = None,
                  last_will_payload: str | None = None,
                  last_will_retain: bool | None = None,
@@ -27,9 +33,13 @@ class AppConfig:
         self.host: str = host
         self.topic_read_power: str = topic_read_power
         self.topic_write_limit: str = topic_write_limit
+        self.inverter_command_throttle: int = inverter_command_throttle
         self.inverter_command_type: InverterCommandType = inverter_command_type
+        self.inverter_command_min_diff: float = inverter_command_min_diff
         self.inverter_max_power: int = inverter_max_power
-
+        self.power_reading_target: int = power_reading_target
+        self.power_reading_smoothing: PowerReadingSmoothingType = power_reading_smoothing
+        self.power_reading_smoothing_sample_size: int = power_reading_smoothing_sample_size
         self.last_will_topic: str | None = last_will_topic
         self.last_will_payload: str | None = last_will_payload
         self.last_will_retain: bool = last_will_retain if last_will_retain is not None else False
@@ -41,12 +51,6 @@ class AppConfig:
         self.retain: bool = retain if retain is not None else False
         self.client_id: str = client_id if client_id is not None else "client_id"
         self.clean_session = clean_session if clean_session is not None else True
-
-    def use_credentials(self) -> bool:
-        return bool(self.cred_username)
-
-    def use_last_will(self) -> bool:
-        return bool(self.last_will_topic)
 
 
 def config_from_json(path: str) -> AppConfig:
@@ -65,6 +69,10 @@ def config_from_json(path: str) -> AppConfig:
     if j_topic_write_limit is None or j_topic_write_limit == "":
         raise ValueError("Config: Invalid topicWriteLimit")
 
+    j_inverter_command_throttle: int = jf.get("inverter_command_throttle")
+    if j_inverter_command_throttle is None or type(j_inverter_command_throttle) is not int:
+        raise ValueError("Config: Invalid inverter_command_throttle")
+
     j_inverter_command_type = jf.get("inverterCommandType")
     e_inverter_command_type: InverterCommandType
 
@@ -75,14 +83,28 @@ def config_from_json(path: str) -> AppConfig:
     else:
         raise ValueError("Config: Invalid inverterCommandType")
 
+    j_inverter_min_diff = jf.get("inverterCommandMinDiff")
+    if type(j_inverter_min_diff) is not float or j_inverter_min_diff < 0:
+        raise ValueError("Config: Invalid inverterCommandMinDiff")
+
     j_inverter_max_power = jf.get("inverterMaxPower")
-    i_inverter_max_power: int = 0
-
-    if type(j_inverter_max_power) == int and j_inverter_max_power >= 0:
-        i_inverter_max_power = j_inverter_max_power
-
-    if e_inverter_command_type == InverterCommandType.RELATIVE and i_inverter_max_power is 0:
+    if type(j_inverter_max_power) is not int or j_inverter_max_power < 0:
         raise ValueError("Config: Invalid inverterMaxPower")
+
+
+    j_power_reading_target:int = jf.get("powerReadingTarget")
+    if type(j_power_reading_target) is not int or j_power_reading_target < 0:
+        raise ValueError("Config: Invalid powerReadingTarget")
+
+    j_power_reading_smoothing:str = jf.get("powerReadingSmoothing")
+    e_power_reading_smoothing: PowerReadingSmoothingType = PowerReadingSmoothingType.NONE
+
+    if(j_power_reading_smoothing == "avg"):
+        e_power_reading_smoothing = PowerReadingSmoothingType.AVG
+
+    j_power_reading_smoothing_sample_size: int = jf.get("powerReadingSmoothingSampleSize")
+    if j_power_reading_smoothing_sample_size is None or type(j_power_reading_smoothing_sample_size) is not int or j_power_reading_smoothing_sample_size < 0: 
+        j_power_reading_smoothing_sample_size = 0
 
     j_port: int | None = None
     j_keepalive: int | None = None
@@ -150,8 +172,13 @@ def config_from_json(path: str) -> AppConfig:
         host=j_host,
         topic_read_power=j_topic_read_power,
         topic_write_limit=j_topic_write_limit,
+        inverter_command_throttle=j_inverter_command_throttle,
         inverter_command_type=e_inverter_command_type,
-        inverter_max_power=i_inverter_max_power,
+        inverter_command_min_diff=j_inverter_min_diff,
+        inverter_max_power=j_inverter_max_power,
+        power_reading_target=j_power_reading_target,
+        power_reading_smoothing=e_power_reading_smoothing,
+        power_reading_smoothing_sample_size=j_power_reading_smoothing_sample_size,
         last_will_topic=j_last_will_topic,
         last_will_payload=j_last_will_payload,
         last_will_retain=j_last_will_retain,

@@ -1,21 +1,30 @@
+import logging
 import config as conf
 import customize as cust
 import paho.mqtt.client as mqtt
+
+from limit import LimitCalculator
 
 
 class ExportControlAgent:
     def __init__(self, config: conf.AppConfig) -> None:
         self.config: conf.AppConfig = config
+        self.limitcalc: LimitCalculator = LimitCalculator(config)
 
     def run(self) -> None:
         def on_connect(client: mqtt.Client, userdata, flags, rc):
-            print("Connected with result code " + str(rc))
+            logging.debug(f"Connected with result code: {str(rc)}")
+            self.limitcalc.reset()
             client.subscribe(self.config.topic_read_power)
 
         def on_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
-            print("Received message: '{0}' on topic: '{1}' with QoS '{2}'".format(msg.payload, msg.topic, msg.qos))
+            logging.debug(f"Received message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}'")
             value = cust.parse_power_payload(msg.payload)
-            print("Parsed value: {0}".format(value))
+            logging.debug(f"Parsed value: {value}")
+
+            if(value is not None):
+                self.limitcalc.addReading(value)
+
 
         client = mqtt.Client(
             client_id=self.config.client_id,
@@ -26,11 +35,12 @@ class ExportControlAgent:
         client.on_connect = on_connect
         client.on_message = on_message
 
-        if self.config.use_credentials():
-            client.username_pw_set(
-                self.config.cred_username, self.config.cred_password)
+        #Use auth
+        if bool(self.config.cred_username):
+            client.username_pw_set(self.config.cred_username, self.config.cred_password)  
 
-        if self.config.use_last_will():
+        #Use lwt
+        if bool(self.config.last_will_topic):
             client.will_set(
                 self.config.last_will_topic,
                 self.config.last_will_payload,

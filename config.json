@@ -21,8 +21,14 @@
         "retain": false
     },
 
+
+    "inverterCommandThrottle": 0,
     "inverterCommandType": "absolute|relative",
-    "inverterMaxPower": 1200
+    "inverterCommandMinDiff": 0.0,
+    "inverterMaxPower": 1200,
     
+    "powerReadingTarget": 0,
+    "powerReadingSmoothing": "None|avg",
+    "powerReadingSmoothingSampleSize": 5
 
 }
