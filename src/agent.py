@@ -22,9 +22,16 @@ class ExportControlAgent:
             value = cust.parse_power_payload(msg.payload)
             logging.debug(f"Parsed value: {value}")
 
+            cmdval: float|None = None
             if(value is not None):
-                self.limitcalc.addReading(value)
+                cmdval = self.limitcalc.addReading(value)
 
+            if cmdval is not None:
+                cmdpayload = cust.command_to_payload(cmdval)
+
+                if cmdpayload is not None:
+                    r = client.publish(self.config.topic_write_limit, cmdpayload, 0, self.config.retain)
+                    logging.debug(f"Command send: {r}")
 
         client = mqtt.Client(
             client_id=self.config.client_id,

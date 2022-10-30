@@ -10,10 +10,10 @@ class LimitCalculator:
     def __init__(self, config: conf.AppConfig) -> None:
         self.config: conf.AppConfig = config
         self.last_command_time: datetime = datetime.min
-        self.last_command_value: float = config.inverter_max_power
-        self.last_command_has:bool = False
-        self.command_max: float = config.inverter_max_power
-        self.command_min: float = 0
+        self.last_command_value: float = float(0)
+        self.last_command_has: bool = False
+        self.command_max: float = float(config.inverter_max_power)
+        self.command_min: float = 0.0
 
         deqSize: int = self.config.power_reading_smoothing_sample_size if self.config.power_reading_smoothing_sample_size > 0 else 1      
 
@@ -31,6 +31,12 @@ class LimitCalculator:
         sample = self.__sampleReading(reading)       
         logging.debug(f"Sample is: {sample}")
 
+        if self.last_command_has is not True:          
+            self.last_command_value = float(self.command_max)
+            self.last_command_has = True
+            logging.debug(f"First reading. Using calibration value.")
+            return self.last_command_value
+
         elapsed = (datetime.now() - self.last_command_time).total_seconds()
         logging.debug(f"Elapsed since last command: {elapsed}")
         if (elapsed < self.config.inverter_command_throttle):
@@ -46,7 +52,7 @@ class LimitCalculator:
         if limit is None:
             return None
 
-        if self.last_command_has and self.__limitIsMinDiff(limit) is not True:
+        if self.__limitIsMinDiff(limit) is not True:
             logging.debug("Limit is not over min diff")
             return None
 
@@ -60,15 +66,15 @@ class LimitCalculator:
         logging.debug(f"Command is: {command}")
         self.last_command_time = datetime.now()
         self.last_command_value = limit
-        self.last_command_has = True
 
         return command
 
     def reset(self) -> None:
+        logging.debug("Reset has been called")
         self.__samples.clear()
         self.last_command_time: datetime = datetime.min
-        self.last_command_value: float = self.config.inverter_max_power
-        self.last_command_has:bool = False
+        self.last_command_value: float = float(0)
+        self.last_command_has: bool = False
 
     def __getSmoothingAvg(self, reading: float) -> float:
         self.__samples.append(reading)
@@ -85,7 +91,7 @@ class LimitCalculator:
         if overshoot == 0:
             return None
         else:
-            return round(max(0, min(self.command_max, (self.last_command_value + overshoot))))
+            return max(0, min(self.command_max, (self.last_command_value + overshoot)))
 
     def __limitIsMinDiff(self, limit: float) -> bool:
         if self.config.inverter_command_min_diff == 0:
@@ -95,4 +101,4 @@ class LimitCalculator:
     def __convertToRelativeCommand(self, limit: float) -> float:
         if limit == 0:
             return 0
-        return round(limit / self.command_max, 0)
+        return limit / self.command_max

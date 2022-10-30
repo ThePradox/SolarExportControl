@@ -12,3 +12,7 @@ def parse_power_payload(payload: bytes) -> float | None:
                 return value
 
     return None
+
+#Convert calculated new limit to mqtt payload
+def command_to_payload(command: float) -> str | None:
+    return f"{round(command,2):.2f}"
