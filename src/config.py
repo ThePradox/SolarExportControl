@@ -93,7 +93,7 @@ def config_from_json(path: str) -> AppConfig:
 
 
     j_power_reading_target:int = jf.get("powerReadingTarget")
-    if type(j_power_reading_target) is not int or j_power_reading_target < 0:
+    if type(j_power_reading_target) is not int:
         raise ValueError("Config: Invalid powerReadingTarget")
 
     j_power_reading_smoothing:str = jf.get("powerReadingSmoothing")

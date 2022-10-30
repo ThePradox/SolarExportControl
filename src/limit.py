@@ -79,15 +79,13 @@ class LimitCalculator:
         return self.__samples[0]
 
     def __convertReadingToRelativeOvershoot(self, reading: float) -> float:
-        return self.config.power_reading_target - reading
+        return (self.config.power_reading_target - reading) * -1
 
     def __convertOvershotToLimit(self, overshoot: float) -> float | None:
         if overshoot == 0:
             return None
-        elif overshoot > 0:
-            return max(0, min(self.command_max, (self.last_command_value + overshoot)))
         else:
-            return max(0, min(self.command_max, (self.last_command_value - overshoot)))
+            return round(max(0, min(self.command_max, (self.last_command_value + overshoot))))
 
     def __limitIsMinDiff(self, limit: float) -> bool:
         if self.config.inverter_command_min_diff == 0:
