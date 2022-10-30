@@ -49,7 +49,7 @@ class AppConfig:
         self.keepalive: int = keepalive if keepalive is not None else 60
         self.protocol: int = protocol if protocol is not None else mqtt.MQTTv311
         self.retain: bool = retain if retain is not None else False
-        self.client_id: str = client_id if client_id is not None else "client_id"
+        self.client_id: str = client_id if client_id is not None else "solar-export-control"
         self.clean_session = clean_session if clean_session is not None else True
 
 
