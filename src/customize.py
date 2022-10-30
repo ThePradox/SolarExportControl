@@ -1,6 +1,6 @@
 import json
 
-# My current payload: {"Time": "2022-10-20T20:58:13", "em": {"power_total": 230.04 }}
+# Example payload: {"Time": "2022-10-20T20:58:13", "em": {"power_total": 230.04 }}
 # Read 'power_total' if it exists
 def parse_power_payload(payload: bytes) -> float | None:
     jobj = json.loads(payload)
