@@ -3,8 +3,8 @@
     "port": null,
     "keepalive": null,
     "protocol": null,
-    "retain": false,
-    "clientId": "",
+    "retain": null,
+    "clientId": null,
     "cleanSession": true,
 
     "topicReadPower": "",
@@ -28,7 +28,7 @@
     "inverterMaxPower": 1200,
     
     "powerReadingTarget": 0,
-    "powerReadingSmoothing": "None|avg",
+    "powerReadingSmoothing": "none|avg",
     "powerReadingSmoothingSampleSize": 5
 
 }
