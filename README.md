@@ -3,7 +3,7 @@
 ## Background
 Take mqtt data about your electric power consumption (from a digital electric meter for example) compare it to a target max power export and if necessary set max power of an solar inverter via mqtt.
 
-### Original setup:
+## Original setup:
 - Power reading via esp32 with tasmota and a 'hichi' IR sensor into mqtt broker
 - Limiting power of inverter with an esp32 running opendtu and receiving the limit over mqtt
 
@@ -44,11 +44,7 @@ Take mqtt data about your electric power consumption (from a digital electric me
 3. Install requirements `$ pip install -r requirements.txt`
 4. Modify [config](#config) to your liking
 5. Modify [customize](#customize) to match your devices
-
-## How to run
-- Run with `python .\src\main.py`
-- Run with VSCode ("launch.json" should be included)
-
+6. [Run](#how-to-run)
 
 ## Customize
 
@@ -98,6 +94,9 @@ return f"{round(command,2):.2f}"
 ```
 </details>
 
+## How to run
+- Run with `python .\src\main.py`
+- Run with VSCode ("launch.json" should be included)
 
 ## Config
 
@@ -149,6 +148,5 @@ I would suggest about 1-3% of your `inverterMaxPower`
 Use `avg` if your power reading interval is very fast (1-5 seconds).<br/>
 Im still experimenting but a good rule of thumb for `powerReadingSmoothingSampleSize` seems to be:
 > `(your amount of power reading per minute)` / 60 * 8
-
 
 
