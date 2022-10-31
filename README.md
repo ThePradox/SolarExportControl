@@ -24,6 +24,14 @@ Take mqtt data about your electric power consumption (from a digital electric me
 - Adjustable power target
 - Adjustable power reading smoothing (Average over a X samples)
 
+## How does it work?
+
+To put it simply:
+
+If your power consumption is greater than `powerReadingTarget`, decrease the limit on your inverter.
+
+If your power consumption is smaller than `powerReadingTarget`, increase the limit on your inverter.
+
 ## Requirements
 - MQTT Broker
 - A power reading sensor:
@@ -32,7 +40,7 @@ Take mqtt data about your electric power consumption (from a digital electric me
     - The published value must be negative if power is exported (inverter production greater than consumption)
     - Should publish at least every 10 seconds
 
-- A device which can regulate its power production
+- An inverter which can regulate its power production
     - Receive its power limit from the MQTT Broker
     - Power limit can be watts or percentage
 
@@ -127,26 +135,24 @@ Required | Property | Description | Type | Default
 | :red_circle: | `powerReadingSmoothing` | - `none`: The original power reading will be used<br/>- `avg`: The average over `powerReadingSmoothingSampleSize` is used<br />Use `avg` to filter very short power spikes
 | :red_circle: | `powerReadingSmoothingSampleSize` | amount of samples to use for `powerReadingSmoothing` when not `none`.<br/> `1` is the same as `powerReadingSmoothing=none`
 
-## Precision
+## Suggestions
 
-If you want absolute precision use:
-- `inverterCommandThrottle = 0`
-- `inverterCommandMinDiff = 0`
-- `powerReadingSmoothing = 'none'`
+For `inverterCommandMinDiff` I would suggest about 1-3% of your `inverterMaxPower`
+
+If your power reading interval is less than or around 5 seconds:
+- `inverterCommandThrottle: 5`
+- `powerReadingSmoothing: "avg"`
+- `powerReadingSmoothingSampleSize:5`
+
+If your power reading interval is slower you are free to turn especially `inverterCommandThrottle` to `0`.
+
+If your power reading interval is very slow (1 minute or greater) you should also turn `powerReadingSmoothing` to `none`
 
 However this basically will change the inverter power limit every interval since every power reading is different unless every device in your household consumes a absolute fixed amount of power.
 
-## Suggestion to Precision
-
-### inverterCommandThrottle
-Only set this if your power reading interval is very fast (1-5 seconds), then i would suggest a value of `5`
-
-### inverterCommandMinDiff
-I would suggest about 1-3% of your `inverterMaxPower`
-
-### powerReadingSmoothing and powerReadingSmoothingSampleSize
-Use `avg` if your power reading interval is very fast (1-5 seconds).<br/>
-Im still experimenting but a good rule of thumb for `powerReadingSmoothingSampleSize` seems to be:
-> `(your amount of power reading per minute)` / 60 * 8
-
+## TODO
+- [ ] Test extensively
+- [ ] Refactoring necessary for better docker support
+- [ ] Create dockerfile
+- [ ] Feature idea: Stop processing during night
 
