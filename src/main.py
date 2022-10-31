@@ -1,15 +1,29 @@
+import argparse
 import logging
-import os
 from pathlib import Path
+import sys
 import config
 from agent import ExportControlAgent
 
-logging.basicConfig(level= 10)
+argparser = argparse.ArgumentParser(prog="SolarExportControl", description="Listens to a mqtt power reading topic and publishes power limits to mqtt topic based on a configured power target.")
+argparser.add_argument("config", type=str, help="path to config file")
+argparser.add_argument("-v", "--verbose", action="store_true")
+args = argparser.parse_args()
 
-__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-config_path = str(Path(__location__).parent.joinpath("config.json").absolute())
+config_path = Path(args.config).resolve()
 
-appconfig = config.config_from_json(config_path)
+if not config_path.exists():
+    sys.exit(f"Config: '{str(config_path)}' does not exist")
+
+loglvl = logging.DEBUG if args.verbose else logging.INFO
+logging.basicConfig(level=loglvl, format="%(asctime)s | %(levelname).3s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+
+
+try:
+    appconfig = config.config_from_json(str(config_path))
+except Exception as ex:
+    sys.exit(f"Failed to load config: '{ex.args}'")
+
 
 agent = ExportControlAgent(appconfig)
 agent.run()

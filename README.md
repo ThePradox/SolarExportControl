@@ -95,7 +95,7 @@ return f"{round(command,2):.2f}"
 </details>
 
 ## How to run
-- Run with `python .\src\main.py`
+- Run with `python .\src\main.py .\config.json --verbose`
 - Run with VSCode ("launch.json" should be included)
 
 ## Config
