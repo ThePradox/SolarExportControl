@@ -31,11 +31,15 @@ class LimitCalculator:
         sample = self.__sampleReading(reading)       
         logging.debug(f"Sample is: {sample}")
 
-        if self.last_command_has is not True:          
+        if self.last_command_has is not True:         
             self.last_command_value = float(self.command_max)
             self.last_command_has = True
             logging.debug(f"First reading. Using calibration value.")
-            return self.last_command_value
+
+            if self.config.inverter_command_type == conf.InverterCommandType.RELATIVE:
+                return self.__convertToRelativeCommand(self.last_command_value)
+            else:
+                return self.last_command_value
 
         elapsed = (datetime.now() - self.last_command_time).total_seconds()
         logging.debug(f"Elapsed since last command: {elapsed}")
@@ -101,4 +105,4 @@ class LimitCalculator:
     def __convertToRelativeCommand(self, limit: float) -> float:
         if limit == 0:
             return 0
-        return limit / self.command_max
+        return (limit / self.command_max) * 100
