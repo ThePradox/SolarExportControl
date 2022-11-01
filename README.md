@@ -4,7 +4,7 @@
 This application was tested multiple days on my setup. Further tests on other setups are necessary!
 
 ## Demo
-A ongoing graph/config screenshot collection can be found [here](docs/Demo.md)
+An ongoing graph/config screenshot collection can be found [here](docs/Demo.md)
 
 ## Background
 Take mqtt data about your electric power consumption (from a digital electric meter for example) compare it to a target max power export and if necessary set max power of an solar inverter via mqtt.
