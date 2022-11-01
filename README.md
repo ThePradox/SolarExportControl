@@ -1,7 +1,7 @@
 # SolarExportControl
 
 ## Disclaimer: Looking for testers and feedback!
-This application was tested on multiple days on my setup. Further tests on other setups are necessary!
+This application was tested multiple days on my setup. Further tests on other setups are necessary!
 
 ## Demo
 A ongoing graph/config screenshot collection can be found [here](docs/Demo.md)
