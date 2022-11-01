@@ -136,6 +136,7 @@ Required | Property | Description | Type | Default
 | :red_circle: | `inverterCommandThrottle` | time in seconds that must pass between new limit commands. Use to prevent multiple commands in a row during a longer power curve. Use `0` to disable | int |
 | :red_circle: | `inverterCommandType` | - `absolute`: publish limit in watts <br/>- `relative`: publish limit in percent of `inverterMaxPower` | string:  "absolute" or "relative"
 | :red_circle: | `inverterCommandMinDiff` | only publish new limit if the amount of watts difference between last limit command is greather than this value. Use `0.0` to disable | number | 
+| :red_circle: | `inverterCommandRetransmit` | time in seconds after which `inverterCommandMinDiff` is ignored to retransmit the command. Useful if commands can get 'lost' on the way to the inverter. Use `0` to disable | int |
 | :red_circle: | `inverterMaxPower` | max power of solar inverter | int |
 | :red_circle: | `powerReadingTarget` | the power consumption this app will use as target. Typical values are `0` (Zero Export) or `-600` (in Germany "Balkonkraftwerk") | int
 | :red_circle: | `powerReadingSmoothing` | - `none`: The original power reading will be used<br/>- `avg`: The average over `powerReadingSmoothingSampleSize` is used<br />Use `avg` to filter very short power spikes

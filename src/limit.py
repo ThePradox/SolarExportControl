@@ -43,7 +43,8 @@ class LimitCalculator:
 
         elapsed = (datetime.now() - self.last_command_time).total_seconds()
         logging.debug(f"Elapsed since last command: {elapsed}")
-        if (elapsed < self.config.inverter_command_throttle):
+
+        if elapsed < self.config.inverter_command_throttle:
             logging.debug("Throttle kicked in")
             return None
 
@@ -56,9 +57,12 @@ class LimitCalculator:
         if limit is None:
             return None
 
-        if self.__limitIsMinDiff(limit) is not True:
-            logging.debug("Limit is not over min diff")
-            return None
+        if self.config.inverter_command_retransmit > 0 and elapsed >= self.config.inverter_command_retransmit:
+            logging.debug("Forced retransmit kicked in. Ignoring mindiff")
+        else:
+            if self.__limitIsMinDiff(limit) is not True:
+                logging.debug("Limit is not over min diff")
+                return None
 
         command:float
         if self.config.inverter_command_type == conf.InverterCommandType.RELATIVE:

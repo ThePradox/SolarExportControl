@@ -25,6 +25,7 @@
     "inverterCommandThrottle": 0,
     "inverterCommandType": "absolute|relative",
     "inverterCommandMinDiff": 0.0,
+    "inverterCommandRetransmit": 0,
     "inverterMaxPower": 1200,
     
     "powerReadingTarget": 0,

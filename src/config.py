@@ -15,7 +15,7 @@ class PowerReadingSmoothingType(Enum):
 
 class AppConfig:
     def __init__(self, host: str, topic_read_power: str, topic_write_limit: str,
-                 inverter_command_throttle: int, inverter_command_min_diff:float, inverter_command_type: InverterCommandType, inverter_max_power: int,
+                 inverter_command_throttle: int, inverter_command_min_diff:float, inverter_command_retransmit:int, inverter_command_type: InverterCommandType, inverter_max_power: int,
                  power_reading_target:int, power_reading_smoothing: PowerReadingSmoothingType, power_reading_smoothing_sample_size: int,
                  last_will_topic: str | None = None,
                  last_will_payload: str | None = None,
@@ -36,6 +36,7 @@ class AppConfig:
         self.inverter_command_throttle: int = inverter_command_throttle
         self.inverter_command_type: InverterCommandType = inverter_command_type
         self.inverter_command_min_diff: float = inverter_command_min_diff
+        self.inverter_command_retransmit:int = inverter_command_retransmit
         self.inverter_max_power: int = inverter_max_power
         self.power_reading_target: int = power_reading_target
         self.power_reading_smoothing: PowerReadingSmoothingType = power_reading_smoothing
@@ -86,6 +87,10 @@ def config_from_json(path: str) -> AppConfig:
     j_inverter_min_diff = jf.get("inverterCommandMinDiff")
     if type(j_inverter_min_diff) is not float or j_inverter_min_diff < 0:
         raise ValueError("Config: Invalid inverterCommandMinDiff")
+
+    j_inverter_retransmit = jf.get("inverterCommandRetransmit")
+    if type(j_inverter_retransmit) is not int or j_inverter_retransmit < 0:
+        raise ValueError("Config: Invalid inverterCommandRetransmit")
 
     j_inverter_max_power = jf.get("inverterMaxPower")
     if type(j_inverter_max_power) is not int or j_inverter_max_power < 0:
@@ -175,6 +180,7 @@ def config_from_json(path: str) -> AppConfig:
         inverter_command_throttle=j_inverter_command_throttle,
         inverter_command_type=e_inverter_command_type,
         inverter_command_min_diff=j_inverter_min_diff,
+        inverter_command_retransmit=j_inverter_retransmit,
         inverter_max_power=j_inverter_max_power,
         power_reading_target=j_power_reading_target,
         power_reading_smoothing=e_power_reading_smoothing,
