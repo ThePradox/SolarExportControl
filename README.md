@@ -66,7 +66,7 @@ You must edit the `.\src\customize.py` to match your devices:
 
 ### parse_power_payload
 ```python
-def parse_power_payload(payload: bytes) -> float | None:
+def parse_power_payload(payload: bytes, inverterMax:int) -> float | None:
 ```
 This function must be edited to return the power reading as `float`. Return `None` to discard the reading
 
@@ -80,7 +80,7 @@ My payload comes from tasmota while the device name is set to "em":
 So my function looks like this:
 
 ```python
-def parse_power_payload(payload: bytes) -> float | None:
+def parse_power_payload(payload: bytes, inverterMax:int) -> float | None:
     jobj = json.loads(payload)
     if "em" in jobj:
         em_jobj = jobj["em"]
@@ -95,7 +95,7 @@ def parse_power_payload(payload: bytes) -> float | None:
 
 ### command_to_payload
 ```python
-def command_to_payload(command: float) -> str | None:
+def command_to_payload(command: float, inverterMax:int) -> str | None:
 ```
 This function must be edited to return the mqtt payload as `string`. Return `None` to discard the limit.
 
@@ -104,7 +104,8 @@ This function must be edited to return the mqtt payload as `string`. Return `Non
 Just round the limit to 2 decimals
 
 ```python
-return f"{round(command,2):.2f}"
+def command_to_payload(command: float, inverterMax:int) -> str | None:
+    return f"{round(command,2):.2f}"
 ```
 </details>
 

@@ -23,7 +23,7 @@ class ExportControlAgent:
 
         def on_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
             logging.debug(f"Received message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}'")
-            value = cust.parse_power_payload(msg.payload)
+            value = cust.parse_power_payload(msg.payload, self.config.inverter_max_power)
             logging.debug(f"Parsed value: {value}")
 
             cmdval: float | None = None
@@ -31,7 +31,7 @@ class ExportControlAgent:
                 cmdval = self.limitcalc.addReading(value)
 
             if cmdval is not None:
-                cmdpayload = cust.command_to_payload(cmdval)
+                cmdpayload = cust.command_to_payload(cmdval, self.config.inverter_max_power)
 
                 if cmdpayload is not None:
                     r = client.publish(self.config.topic_write_limit, cmdpayload, 0, self.config.retain)
