@@ -11,7 +11,10 @@
             "program": "${workspaceFolder}/src/main.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["./config.json", "--verbose"]
+            "args": [
+                "./src/config/config.json",
+                "--verbose"
+            ]
         }
     ]
 }

@@ -1,15 +1,14 @@
 import logging
-import config as conf
-import customize as cust
-import paho.mqtt.client as mqtt
-
-from limit import LimitCalculator
+import config.customize as customize
+import core.setup as setup
+from core.limit import LimitCalculator
+from paho.mqtt import client as mqtt
 
 
 class ExportControlAgent:
-    def __init__(self, config: conf.AppConfig) -> None:
-        self.config: conf.AppConfig = config
-        self.limitcalc: LimitCalculator = LimitCalculator(config)
+    def __init__(self, config: setup.AppConfig) -> None:
+        self.config: setup.AppConfig = config
+        self.limitcalc: LimitCalculator = LimitCalculator(config)       
 
     def run(self) -> None:
         def on_connect(client: mqtt.Client, userdata, flags, rc):
@@ -23,7 +22,7 @@ class ExportControlAgent:
 
         def on_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
             logging.debug(f"Received message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}'")
-            value = cust.parse_power_payload(msg.payload, self.config.inverter_max_power)
+            value = customize.parse_power_payload(msg.payload, self.config.inverter_max_power)
             logging.debug(f"Parsed value: {value}")
 
             cmdval: float | None = None
@@ -31,7 +30,7 @@ class ExportControlAgent:
                 cmdval = self.limitcalc.addReading(value)
 
             if cmdval is not None:
-                cmdpayload = cust.command_to_payload(cmdval, self.config.inverter_max_power)
+                cmdpayload = customize.command_to_payload(cmdval, self.config.inverter_max_power)
 
                 if cmdpayload is not None:
                     r = client.publish(self.config.topic_write_limit, cmdpayload, 0, self.config.retain)
