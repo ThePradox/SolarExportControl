@@ -69,7 +69,7 @@ If your power consumption is smaller than `powerReadingTarget`, increase the lim
 
 ## Customize
 
-You must edit the `.\src\customize.py` to match your devices:
+You must edit the `.\src\config\customize.py` to match your devices:
 
 ### parse_power_payload
 
@@ -125,7 +125,7 @@ def command_to_payload(command: float, inverterMax:int) -> str | None:
 
 ## How to run
 
-- Run with `python .\src\main.py .\config.json --verbose`
+- Run with `python .\src\main.py .\src\config\config.json --verbose`
 - Run with VSCode ("launch.json" should be included)
 
 ## Config
