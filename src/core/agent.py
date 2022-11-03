@@ -34,7 +34,7 @@ class ExportControlAgent:
 
                 if cmdpayload is not None:
                     r = client.publish(self.config.topic_write_limit, cmdpayload, 0, self.config.retain)
-                    logging.debug(f"Command send: '{cmdpayload}', Result: '{r}'")
+                    logging.info(f"New limit send: '{cmdpayload}', Result: '{r}'")
 
         client = mqtt.Client(
             client_id=self.config.client_id,
