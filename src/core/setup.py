@@ -15,8 +15,11 @@ class PowerReadingSmoothingType(Enum):
 
 class AppConfig:
     def __init__(self, host: str, topic_read_power: str, topic_write_limit: str,
-                 inverter_command_throttle: int, inverter_command_min_diff:float, inverter_command_retransmit:int, inverter_command_type: InverterCommandType, inverter_max_power: int,
+                 inverter_command_throttle: int, inverter_command_min_diff:float, inverter_command_retransmit:int, inverter_command_type: InverterCommandType, inverter_max_power: int, 
                  power_reading_target:int, power_reading_smoothing: PowerReadingSmoothingType, power_reading_smoothing_sample_size: int,
+                 inverter_calibration_config: dict,
+                 status_config: dict,
+                 status_topic: str | None = None,         
                  last_will_topic: str | None = None,
                  last_will_payload: str | None = None,
                  last_will_retain: bool | None = None,
@@ -41,6 +44,9 @@ class AppConfig:
         self.power_reading_target: int = power_reading_target
         self.power_reading_smoothing: PowerReadingSmoothingType = power_reading_smoothing
         self.power_reading_smoothing_sample_size: int = power_reading_smoothing_sample_size
+        self.inverter_calibration_config:dict = inverter_calibration_config
+        self.status_topic: str | None = status_topic
+        self.status_config: dict = status_config
         self.last_will_topic: str | None = last_will_topic
         self.last_will_payload: str | None = last_will_payload
         self.last_will_retain: bool = last_will_retain if last_will_retain is not None else False
@@ -96,7 +102,6 @@ def config_from_json(path: str) -> AppConfig:
     if type(j_inverter_max_power) is not int or j_inverter_max_power < 0:
         raise ValueError("Config: Invalid inverterMaxPower")
 
-
     j_power_reading_target:int = jf.get("powerReadingTarget")
     if type(j_power_reading_target) is not int:
         raise ValueError("Config: Invalid powerReadingTarget")
@@ -104,12 +109,17 @@ def config_from_json(path: str) -> AppConfig:
     j_power_reading_smoothing:str = jf.get("powerReadingSmoothing")
     e_power_reading_smoothing: PowerReadingSmoothingType = PowerReadingSmoothingType.NONE
 
-    if(j_power_reading_smoothing == "avg"):
+    if j_power_reading_smoothing == "avg":
         e_power_reading_smoothing = PowerReadingSmoothingType.AVG
 
     j_power_reading_smoothing_sample_size: int = jf.get("powerReadingSmoothingSampleSize")
     if j_power_reading_smoothing_sample_size is None or type(j_power_reading_smoothing_sample_size) is not int or j_power_reading_smoothing_sample_size < 0: 
         j_power_reading_smoothing_sample_size = 0
+
+    j_inverter_calibration = jf.get("calibration")
+    if type(j_inverter_calibration) is not dict:
+        j_inverter_calibration = {}
+
 
     j_port: int | None = None
     j_keepalive: int | None = None
@@ -117,7 +127,7 @@ def config_from_json(path: str) -> AppConfig:
     j_retain: bool | None = None
     j_client_id: str | None = None
     j_clean_session: bool | None = None
-
+  
     t = jf.get("port")
     if type(t) is int and t > 0:
         j_port = t
@@ -142,6 +152,7 @@ def config_from_json(path: str) -> AppConfig:
     if type(t) is bool:
         j_clean_session = t
 
+    
     j_last_will = jf.get("lastWill")
     j_last_will_topic: str | None = None
     j_last_will_payload: str | None = None
@@ -173,6 +184,17 @@ def config_from_json(path: str) -> AppConfig:
         if type(t) is str:
             j_auth_pw = t
 
+
+    j_status_config = jf.get("status")
+    j_status_topic: str | None = None
+
+    if type(j_status_config) is dict:
+        t = j_status_config.get("topic")
+        if type(t) is str and t:
+            j_status_topic = t
+    else:
+        j_status_config = {}
+
     conf = AppConfig(
         host=j_host,
         topic_read_power=j_topic_read_power,
@@ -185,9 +207,12 @@ def config_from_json(path: str) -> AppConfig:
         power_reading_target=j_power_reading_target,
         power_reading_smoothing=e_power_reading_smoothing,
         power_reading_smoothing_sample_size=j_power_reading_smoothing_sample_size,
+        inverter_calibration_config=j_inverter_calibration,
         last_will_topic=j_last_will_topic,
         last_will_payload=j_last_will_payload,
         last_will_retain=j_last_will_retain,
+        status_config=j_status_config,
+        status_topic=j_status_topic, 
         cred_username=j_auth_user,
         cred_password=j_auth_pw,
         port=j_port,
@@ -195,7 +220,7 @@ def config_from_json(path: str) -> AppConfig:
         protocol=j_protocol,
         retain=j_retain,
         client_id=j_client_id,
-        clean_session=j_clean_session
+        clean_session=j_clean_session,
     )
 
     return conf

@@ -1,5 +1,5 @@
 {
-    "host": "",
+    "host": "192.168.1.2",
     "port": null,
     "keepalive": null,
     "protocol": null,
@@ -7,29 +7,30 @@
     "clientId": null,
     "cleanSession": true,
 
-    "topicReadPower": "",
-    "topicWriteLimit": "",
-    
-    "auth": {
-        "username": "",
-        "password": ""
-    },
+    "topicReadPower": "power/DD3-BZ10-DTA-ODZ1/tele/SENSOR",
+    "topicWriteLimit": "solar/116181044981/cmd/limit_nonpersistent_absolute",
 
+    "auth": {
+        "username": "shelly-plug-s-1",
+        "password": "V55UXEaJm7nXnNuwsd2Q"
+    },
     "lastWill": {
         "topic": "",
         "payload": "",
         "retain": false
     },
 
-
-    "inverterCommandThrottle": 0,
-    "inverterCommandType": "absolute|relative",
-    "inverterCommandMinDiff": 0.0,
-    "inverterCommandRetransmit": 0,
-    "inverterMaxPower": 1200,
-    
+    "inverterCommandThrottle": 5,
+    "inverterCommandType": "relative",
+    "inverterCommandMinDiff": 10.0,
+    "inverterCommandRetransmit": 60,
+    "inverterMaxPower": 600,
     "powerReadingTarget": 0,
-    "powerReadingSmoothing": "none|avg",
-    "powerReadingSmoothingSampleSize": 5
+    "powerReadingSmoothing": "avg",
+    "powerReadingSmoothingSampleSize": 5,
 
+    "status": {
+        "topic": ""
+    },
+    "calibration": {}
 }

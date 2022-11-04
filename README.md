@@ -67,95 +67,20 @@ If your power consumption is smaller than `powerReadingTarget`, increase the lim
 5. Modify [customize](/src/config/customize.py) to match your devices
 6. [Run](#how-to-run)
 
+## Config
+
+See [Docs](/docs/Config.md)
+
 ## Customize
 
-You must edit the `.\src\config\customize.py` to match your devices:
+You **must** edit the `.\src\config\customize.py` to match your devices:
 
-### parse_power_payload
-
-```python
-def parse_power_payload(payload: bytes, inverterMax:int) -> float | None:
-```
-
-This function must be edited to return the power reading as `float`. Return `None` to discard the reading
-
-<details><summary>Example</summary>
-
-Payload comes from tasmota while the device name is set to "em":
-
-```json
-{"Time": "2022-10-20T20:58:13", "em": {"power_total": 230.04 }}
-```
-
-So my function looks like this:
-
-```python
-def parse_power_payload(payload: bytes, inverterMax:int) -> float | None:
-    jobj = json.loads(payload)
-    if "em" in jobj:
-        em_jobj = jobj["em"]
-        if "power_total" in em_jobj:
-            value = em_jobj["power_total"]
-            if isinstance(value, float):
-                return value
-
-    return None
-```
-
-</details>
-
-### command_to_payload
-
-```python
-def command_to_payload(command: float, inverterMax:int) -> str | None:
-```
-
-This function must be edited to return the mqtt payload as `string`. Return `None` to discard the limit.
-
-<details><summary>Example</summary>
-
-Just round the limit to 2 decimals
-
-```python
-def command_to_payload(command: float, inverterMax:int) -> str | None:
-    return f"{round(command,2):.2f}"
-```
-
-</details>
+See [Docs](/docs/Customize.md)
 
 ## How to run
 
 - Run with `python .\src\main.py .\src\config\config.json --verbose`
 - Run with VSCode ("launch.json" should be included)
-
-## Config
-
-Settings in `config.json`. Properties not required can be `null`
-
-Required | Property | Description | Type | Default
-|---|---|---|---|---|
-| :red_circle: | `host` | hostname or IP address of the remote broker | string ||
-| | `port` | network port of the server host to connect to | int |  1883
-|| `keepalive` | maximum period in seconds allowed between communications with the broker | int | 60
-|| `protocol` | choose the version of the mqtt protocol to use. Use either `MQTTv31 = 3`, `MQTTv311 = 4`, `MQTTv5 = 5` | int | 4
-|| `retain` | set the limit command message to be retained (true) or not (false) | bool | false
-|:yellow_circle: | `clientId` | mqtt client id to use, required if `cleanSession=false` | string |  solar-export-control
-|| `cleanSession` | client type. See [clean_session](https://pypi.org/project/paho-mqtt/#constructor-reinitialise) | bool | true
-| :red_circle: | `topicReadPower` | MQTT-Topic to read current power draw | string |
-| :red_circle: | `topicWriteLimit` | MQTT-Topi to write power limit to | string
-|| `auth.username` | set a username for broker authentication | string
-|| `auth.password` | set optionally a password for broker authentication | string
-|| `lastWill.topic` | topic that the will message should be published on | string
-|| `lastWill.payload` | the message to send as a will. If not given a zero length message will be used as the will | string
-|| `lastWill.retain` | set the will to be retained (true) or not (false) | bool | false
-| :red_circle: | `inverterCommandThrottle` | time in seconds that must pass between new limit commands. Use to prevent multiple commands in a row during a longer power curve. Use `0` to disable | int |
-| :red_circle: | `inverterCommandType` | - `absolute`: publish limit in watts <br/>- `relative`: publish limit in percent of `inverterMaxPower` | string:  "absolute" or "relative"
-| :red_circle: | `inverterCommandMinDiff` | only publish new limit if the amount of watts difference between last limit command is greather than this value. Use `0.0` to disable | number |
-| :red_circle: | `inverterCommandRetransmit` | time in seconds after which `inverterCommandMinDiff` is ignored to retransmit the command. Useful if commands can get 'lost' on the way to the inverter. Use `0` to disable |  int |
-| :red_circle: | `inverterMaxPower` | max power of solar inverter | int |
-| :red_circle: | `powerReadingTarget` | the power consumption this app will use as target. Typical values are `0` (Zero Export) or `-600` (in Germany "Balkonkraftwerk") | int
-| :red_circle: | `powerReadingSmoothing` | - `none`: The original power reading will be used<br/>- `avg`: The average over `powerReadingSmoothingSampleSize` is used<br />Use `avg` to filter very short power spikes
-| :red_circle: | `powerReadingSmoothingSampleSize` | amount of samples to use for `powerReadingSmoothing` when not `none`.<br/> `1` is the same as `powerReadingSmoothing=none`
 
 ## Suggestions
 
@@ -176,6 +101,6 @@ However this basically will change the inverter power limit every interval since
 ## TODO
 
 - [ ] Test extensively
-- [ ] Refactoring necessary for better docker support
-- [ ] Create dockerfile
+- [x] Refactoring necessary for better docker support
+- [x] Create dockerfile
 - [ ] Feature idea: Stop processing during night
