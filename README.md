@@ -56,7 +56,7 @@ If your power consumption is smaller than `powerReadingTarget`, increase the lim
   - Receive its power limit from the MQTT Broker
   - Power limit can be watts or percentage
 
-- Python3
+- Python3 (min. 3.10)
 
 ## How to install
 
