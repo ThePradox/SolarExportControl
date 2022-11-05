@@ -18,7 +18,7 @@ logging.basicConfig(level=loglvl, format="%(asctime)s | %(levelname).3s | %(mess
 
 
 try:
-    appconfig = core.setup.config_from_json(str(config_path))
+    appconfig = core.setup.AppConfig.from_json_file(str(config_path))
 except Exception as ex:
     sys.exit(f"Failed to load config: '{ex.args}'")
 

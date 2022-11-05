@@ -1,36 +1,44 @@
 {
-    "host": "192.168.1.2",
-    "port": null,
-    "keepalive": null,
-    "protocol": null,
-    "retain": null,
-    "clientId": null,
-    "cleanSession": true,
-
-    "topicReadPower": "power/DD3-BZ10-DTA-ODZ1/tele/SENSOR",
-    "topicWriteLimit": "solar/116181044981/cmd/limit_nonpersistent_absolute",
-
-    "auth": {
-        "username": "shelly-plug-s-1",
-        "password": "V55UXEaJm7nXnNuwsd2Q"
+    "mqtt": {
+        "host": "",
+        "port": null,
+        "keepalive": null,
+        "protocol": null,
+        "retain": null,
+        "clientId": null,
+        "cleanSession": true,
+        "topics": {
+            "readPower": "",
+            "writeLimit": null,
+            "status": null,
+            "lastWill": null
+        },
+        "auth": {
+            "username": "",
+            "password": null
+        },
+        "lastWill": {
+            "payload": null,
+            "retain": false
+        }
     },
-    "lastWill": {
-        "topic": "",
-        "payload": "",
-        "retain": false
+    "command": {
+        "target": 0,
+        "minPower": 0,
+        "maxPower": 1200,
+        "type": "relative",
+        "throttle": 5,
+        "minDiff": 10.0,
+        "retransmit": 60
     },
-
-    "inverterCommandThrottle": 5,
-    "inverterCommandType": "relative",
-    "inverterCommandMinDiff": 10.0,
-    "inverterCommandRetransmit": 60,
-    "inverterMaxPower": 600,
-    "powerReadingTarget": 0,
-    "powerReadingSmoothing": "avg",
-    "powerReadingSmoothingSampleSize": 5,
-
-    "status": {
-        "topic": ""
+    "reading": {
+        "offset": 0,
+        "smoothing": "avg",
+        "smoothingSampleSize": 5
     },
-    "calibration": {}
+    "customize": {
+        "status": {},
+        "calibration": {},
+        "command": {}
+    }
 }
