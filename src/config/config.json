@@ -28,13 +28,13 @@
         "maxPower": 1200,
         "type": "relative",
         "throttle": 5,
-        "minDiff": 10.0,
-        "retransmit": 60
+        "minDiff": 0,
+        "retransmit": 0
     },
     "reading": {
         "offset": 0,
-        "smoothing": "avg",
-        "smoothingSampleSize": 5
+        "smoothing": null,
+        "smoothingSampleSize": 0
     },
     "customize": {
         "status": {},

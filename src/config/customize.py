@@ -24,10 +24,7 @@ def command_to_generic(command: float, command_min: float, command_max: float, c
 
 # Get initial inverter status (True = Active / False = Inactive)
 def get_status_init(config: dict) -> bool:
-    url: str = config["url"]                    # Get url from config
-    # Get status page and parse json
-    resp = requests.get(url).json()
-    return resp[0].get("reachable") == True     # Test if inverter is reachable
+    return True
 
 # Convert ongoing status update payload to bool (True = Active /False = Inactive)
 def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
@@ -36,11 +33,4 @@ def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
 
 # Get a value thats as near as possible to current inverter power production
 def calibrate(config: dict) -> float | None:
-    url: str = config["url"]
-    resp = requests.get(url).json()
-    val = resp[0]["0"]["Power"]["v"]
-
-    if type(val) is float:
-        return val
-
     return None
