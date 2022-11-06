@@ -9,6 +9,7 @@ This application was tested multiple days on my setup. Further tests on other se
 This application takes your current electric power consumption (from a digital electric meter for example) and compares it to a defined target value.
 
 If your consumption is greater than your target: Lower the limit of your solar inverter
+
 If your consumption is lower than your target: Increase the limit on your solar inverter
 
 ## Original setup
