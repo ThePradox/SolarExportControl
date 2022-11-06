@@ -1,4 +1,10 @@
-import sys, argparse, logging, pathlib
+import sys
+MIN_PYTHON = (3, 10)
+print (sys.version_info)
+if sys.version_info < MIN_PYTHON:
+    sys.exit("Python %s.%s or later is required.\n" % MIN_PYTHON)
+
+import argparse, logging, pathlib
 import core.setup
 from core.agent import ExportControlAgent
 
