@@ -2,8 +2,8 @@ import json
 import requests
 
 # Example payload: {"Time": "2022-10-20T20:58:13", "em": {"power_total": 230.04 }}
-# Convert ongoing power reading payload to float (Negative = Export)
-def parse_power_payload(payload: bytes, inverter_max: int) -> float | None:
+# Convert ongoing power reading payload to float (negative = export)
+def parse_power_payload(payload: bytes, command_min: float, command_max: float) -> float | None:
     jobj = json.loads(payload)
     if "em" in jobj:
         em_jobj = jobj["em"]
@@ -15,8 +15,12 @@ def parse_power_payload(payload: bytes, inverter_max: int) -> float | None:
     return None
 
 # Convert calculated new limit to mqtt payload
-def command_to_payload(command: float, inverter_max: int) -> str | None:
+def command_to_payload(command: float, command_min: float, command_max: float) -> str | None:
     return f"{round(command,2):.2f}"
+
+# Send your command to anywhere
+def command_to_generic(command: float, command_min: float, command_max: float, config:dict) -> None:
+    pass
 
 # Get initial inverter status (True = Active / False = Inactive)
 def get_status_init(config: dict) -> bool:

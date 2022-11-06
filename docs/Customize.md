@@ -1,25 +1,30 @@
 # Customize.py
 
+Found in `/src/config/customize.py`
+
 ## **Required**: `parse_power_payload`
 
 ```python
-def parse_power_payload(payload: bytes, inverter_max:int) -> float | None:
+# Convert ongoing power reading payload to float (negative = export)
+def parse_power_payload(payload: bytes, command_min: float, command_max: float) -> float | None:
 ```
 
 This function must be edited to return the power reading as `float`. Return `None` to discard the reading
 
-<details><summary>Example</summary>
+<details><summary>Example 1</summary>
 
 Payload comes from tasmota while the device name is set to "em":
+
+Payload:
 
 ```json
 {"Time": "2022-10-20T20:58:13", "em": {"power_total": 230.04 }}
 ```
 
-So my function looks like this:
+Function
 
 ```python
-def parse_power_payload(payload: bytes, inverter_max:int) -> float | None:
+def parse_power_payload(payload: bytes, command_min: float, command_max: float) -> float | None:
     jobj = json.loads(payload)
     if "em" in jobj:
         em_jobj = jobj["em"]
@@ -33,12 +38,32 @@ def parse_power_payload(payload: bytes, inverter_max:int) -> float | None:
 
 </details>
 
+<details><summary>Example 2</summary>
+
+Payload is just the number
+
+Payload:
+
+```txt
+230.04
+```
+
+Function
+
+```python
+def parse_power_payload(payload: bytes, command_min: float, command_max: float) -> float | None:
+    return float(payload.decode())
+```
+
+</details>
+
 <br />
 
 ## **Required**: `command_to_payload`
 
 ```python
-def command_to_payload(command: float, inverter_max:int) -> str | None:
+# Convert calculated new limit to mqtt payload
+def command_to_payload(command: float, command_min: float, command_max: float) -> str | None:
 ```
 
 This function must be edited to return the mqtt payload as `string`. Return `None` to discard the limit.
@@ -48,7 +73,7 @@ This function must be edited to return the mqtt payload as `string`. Return `Non
 Just round the limit to 2 decimals
 
 ```python
-def command_to_payload(command: float, inverter_max:int) -> str | None:
+def command_to_payload(command: float, command_min: float, command_max: float) -> str | None:
     return f"{round(command,2):.2f}"
 ```
 
@@ -59,12 +84,13 @@ def command_to_payload(command: float, inverter_max:int) -> str | None:
 ## Optional: `get_status_init`
 
 ```python
+# Get initial inverter status (True = Active / False = Inactive)
 def get_status_init(config: dict) -> bool:
 ```
 
-Only required if active status is used.
+Only required if `config.mqtt.topics.status` is not empty
 
-This function can be be edited to return the inital active status state (True=Active / False=Inactive). The whole `status` dict from `config.json` is passed as parameter.
+This function can be be edited to return the inital active status state (True=Active / False=Inactive). The whole `config.customize.status` object is passed as parameter.
 
 Get´s called during start and reconnection
 
@@ -81,16 +107,17 @@ def get_status_init(config: dict) -> bool:
 
 <details><summary>Example 2</summary>
 
-Retrieve status wie http
+Retrieve status with http request
 
 config.json
 
 ```json
 ...
-    "status": {
-        "topic": "my/status/topic",
+"customize":{
+    "status": {   
         "url": "http://opendtu.local/api/livedata/status"
     },
+}
 ...
 ```
 
@@ -109,12 +136,13 @@ def get_status_init(config: dict) -> bool:
 ## Optional: `parse_status_payload`
 
 ```python
+# Convert ongoing status update payload to bool (True = Active /False = Inactive)
 def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
 ```
 
-Only required if active status is used.
+Only required if `config.mqtt.topics.status` is not empty
 
-This function can be be edited to return to parse the payload of `status.topic` to `bool` (True=Active / False=Inactive). Return `None`to discard message
+This function can be be edited to return the status from the payload of `config.mqtt.topics.status` as `bool` (True=Active / False=Inactive). Return `None`to discard message
 
 <details><summary>Example</summary>
 
@@ -129,6 +157,11 @@ def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
 </details>
 
 ## Optional: `def calibrate`
+
+```python
+# Get a value thats as near as possible to current inverter power production
+def calibrate(config: dict) -> float | None:
+```
 
 This application does not know how much power your inverter produces currently. This leads to an inital 'attunement' phase in which the application changes the limit without impacting the current power production of the inverter.
 
@@ -146,17 +179,13 @@ E.g.:
 5. Adjusted by the current overshot, new limit is 400 W. Inverter production is not impacted
 6. Adjusted by the current overshot, new limit is 200 W. Inverter production **is impacted**
 
-if your power reading interval is not that fast, this 6 Steps can add up to several minutes.
+if your power reading interval is not that fast, this 6 Steps can be quite long.
 
 This function allows the application to shortcut to bullet point 5.
 
-Return the current power production of the inverter or `None` for default of `inverterMaxPower`
-
+Return the current power production of the inverter or `None` for the default value of `config.command.maxPower`
+The whole `config.customize.calibrate` object is passed as parameter.
 Get´s called during start and reconnection
-
-```python
-def calibrate(config: dict) -> float | None:
-```
 
 <details><summary>Example</summary>
 
@@ -186,3 +215,14 @@ def calibrate(config: dict) -> float | None:
 ```
 
 </details>
+
+## Optional: `command_to_generic`
+
+```python
+# Send your command to anywhere
+def command_to_generic(command: float, command_min: float, command_max: float, config:dict) -> None:
+```
+
+This function will get called whenever a command would be published on `config.mqtt.topics.writeLimit`.
+The whole `config.customize.command` object is passed as parameter.
+Send the limit over http, sql or whatever, go wild.
