@@ -4,52 +4,44 @@
 
 This application was tested multiple days on my setup. Further tests on other setups are necessary!
 
-## Demo
+## Description
 
-An ongoing graph/config screenshot collection can be found [here](docs/Demo.md)
+This application takes your current electric power consumption (from a digital electric meter for example) and compares it to a defined target value.
 
-## Background
-
-Take mqtt data about your electric power consumption (from a digital electric meter for example) compare it to a target max power export and if necessary set max power of an solar inverter via mqtt.
+If your consumption is greater than your target: Lower the limit of your solar inverter
+If your consumption is lower than your target: Increase the limit on your solar inverter
 
 ## Original setup
 
 - Power reading via esp32 with tasmota and a 'hichi' IR sensor into mqtt broker
-- Limiting power of inverter with an esp32 running opendtu and receiving the limit over mqtt
-
-## Goal
-
-- Use as little input as possible: Only a read current power topic and a command limit inverter power topic is needed
-- Compatible with [OpenDTU](https://github.com/tbnobody/OpenDTU)
-- Compatible with anything that can recieve its power limit over mqtt
-- Make limit calculation configurable
-- Make reading mqtt power payload and writing power limit payload customizable
-- Docker the whole thing?
+- Limiting power of inverter with an esp32 running [OpenDTU](https://github.com/tbnobody/OpenDTU) and receiving the limit over mqtt
 
 ## Implemented Features
 
-- Most MQTT Settings exposed
-- Adjustable command throttling
-- Command calculation as absolute and relative
-- Adjustable minimum difference between limits
-- Adjustable power target
-- Adjustable power reading smoothing (Average over a X samples)
+- Most MQTT settings exposed
+- Configurable command behaviour:
+        - Min limit
+        - Relative (%) or absolute (W)
+        - Throttle amount of commands
+        - Minimum difference to last command
+- Configurable power reading:
+        - Offset
+        - Smoothing: Average over X samples
+- Configurable sleep mode. Turn off during night!
+- Scriptable calibration
+- Scriptable generic limit callback: Send your inverter limit anywhere!
 
-## How does it work?
+## Demo
 
-To put it simply:
-
-If your power consumption is greater than `powerReadingTarget`, decrease the limit on your inverter.
-
-If your power consumption is smaller than `powerReadingTarget`, increase the limit on your inverter.
+An ongoing graph/config screenshot collection can be found [here](docs/Demo.md)
 
 ## Requirements
 
 - MQTT Broker
 - A power reading sensor:
   - Publishes to MQTT Broker
-  - The published value must include the inverter power
-  - The published value must be negative if power is exported (inverter production greater than consumption)
+  - The published value **must** include the inverter power
+  - The published value **must** be negative if power is exported (inverter production greater than consumption)
   - Should publish at least every 10 seconds
 
 - An inverter which can regulate its power production
@@ -69,6 +61,8 @@ If your power consumption is smaller than `powerReadingTarget`, increase the lim
 
 ## Config
 
+You **must** edit the `.\src\config\config.json` to match your environment:
+
 See [Docs](/docs/Config.md)
 
 ## Customize
@@ -79,28 +73,26 @@ See [Docs](/docs/Customize.md)
 
 ## How to run
 
-- Run with `python .\src\main.py .\src\config\config.json --verbose`
+- Run with verbose logging: `python .\src\main.py .\src\config\config.json --verbose`
+- Run normal: `python .\src\main.py .\src\config\config.json`
 - Run with VSCode ("launch.json" should be included)
 
-## Suggestions
+## Docker support
 
-For `inverterCommandMinDiff` I would suggest about 1-3% of your `inverterMaxPower`
+See [Docs](/docs/Docker.md)
+
+## Config suggestions
+
+For `config.command.minDiff` I would suggest about 1-3% of your `command.maxPower`
 
 If your power reading interval is less than or around 5 seconds:
 
-- `inverterCommandThrottle: 5`
-- `powerReadingSmoothing: "avg"`
-- `powerReadingSmoothingSampleSize:5`
+- `config.command.throttle: 5`
+- `config.reading.smoothing: "avg"`
+- `config.reading.smoothingSampleSize:5`
 
-If your power reading interval is slower you are free to turn especially `inverterCommandThrottle` to `0`.
+If your power reading interval is slower you are free to turn especially `config.command.throttle` to `0`.
 
-If your power reading interval is very slow (1 minute or greater) you should also turn `powerReadingSmoothing` to `none`
+If your power reading interval is very slow (1 minute or greater) you should also turn `config.reading.smoothing` to `none`
 
-However this basically will change the inverter power limit every interval since every power reading is different unless every device in your household consumes a absolute fixed amount of power.
-
-## TODO
-
-- [ ] Test extensively
-- [x] Refactoring necessary for better docker support
-- [x] Create dockerfile
-- [ ] Feature idea: Stop processing during night
+However this basically will change the inverter power limit every interval since every power reading is different.

@@ -2,7 +2,7 @@ import json
 import requests
 
 # Example payload: {"Time": "2022-10-20T20:58:13", "em": {"power_total": 230.04 }}
-# Convert ongoing power reading payload to float (Negative = Export)
+# Convert ongoing power reading payload to float (negative = export)
 def parse_power_payload(payload: bytes, command_min: float, command_max: float) -> float | None:
     jobj = json.loads(payload)
     if "em" in jobj:
