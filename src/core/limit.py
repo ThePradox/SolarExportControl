@@ -25,7 +25,7 @@ class LimitCalculator:
             sampleFunc = self.__get_smoothing_none
             deqSize = 1
 
-        if self.config.reading.offset is not 0:
+        if self.config.reading.offset != 0:
             self.__sampleReading = lambda x: sampleFunc(self.config.reading.offset + x)
         else:
             self.__sampleReading = sampleFunc
@@ -36,7 +36,7 @@ class LimitCalculator:
         sample = self.__sampleReading(reading)
         self.__log_reading(reading, sample)
 
-        if self.last_command_has is not True:
+        if not self.last_command_has:
             logging.debug(f"First reading. Calibrate...")
             self.last_command_value = self.__get_calibration()
             self.last_command_has = True
@@ -64,7 +64,7 @@ class LimitCalculator:
         if self.config.command.retransmit > 0 and elapsed >= self.config.command.retransmit:
             logging.debug("Forced retransmit kicked in. Ignoring mindiff")
         else:
-            if self.__limit_is_min_diff(limit) is not True:
+            if not self.__limit_is_min_diff(limit):
                 logging.debug("Limit is not over min diff")
                 return None
 
@@ -122,10 +122,10 @@ class LimitCalculator:
             return True
         return abs(self.last_command_value - limit) >= self.config.command.min_diff
 
-    def __convert_to_relative_command(self, limit: float) -> float:      
+    def __convert_to_relative_command(self, limit: float) -> float:
         return (limit / self.command_max) * 100
 
-    def __cap_command(self, limit:float) -> float:
+    def __cap_command(self, limit: float) -> float:
         return max(self.command_min, min(self.command_max, limit))
 
     @staticmethod
@@ -133,5 +133,5 @@ class LimitCalculator:
         logging.debug(f"Reading: {reading:>8.2f} | Sample: {sample:>6.2f}")
 
     @staticmethod
-    def __log_overshoot(overshoot: float, limit: float|None):
+    def __log_overshoot(overshoot: float, limit: float | None):
         logging.debug(f"Overshoot: {overshoot:>6.2f} | Limit: {limit:>7.2f}")

@@ -6,14 +6,19 @@ from paho.mqtt import client as mqtt
 
 
 class ExportControlAgent:
-    def __init__(self, config: setup.AppConfig) -> None:
+    def __init__(self, config: setup.AppConfig, mqtt_log: bool = False) -> None:
         self.config: setup.AppConfig = config
         self.limitcalc: LimitCalculator = LimitCalculator(config)
         self.status_current = True
+        self.mqtt_log = mqtt_log
 
     def run(self) -> None:
         def on_connect(client: mqtt.Client, userdata, flags, rc):
-            logging.info(f"Connected with result code: {str(rc)}")
+            logging.info(f"Connection response: {rc} - \"{mqtt.connack_string(rc)}\", flags: {flags}")
+
+            if rc != mqtt.CONNACK_ACCEPTED:
+                return
+
             self.limitcalc.reset()
             self.status_current = True
 
@@ -30,13 +35,13 @@ class ExportControlAgent:
                 self.__subscribe(client, self.config.mqtt.topics.read_power)
 
         def on_disconnect(client: mqtt.Client, userdata, rc):
-            logging.warning(f"Disconnected with result code: {str(rc)}")
+            logging.warning(f"Disconnected: {rc} - \"{mqtt.error_string(rc)}\"")
 
         def on_status_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
             value = customize.parse_status_payload(msg.payload, self.status_current)
             self.__received_message(msg, "status", value)
-          
-            if value == None:
+
+            if value is None:
                 return
 
             if self.status_current != value:
@@ -50,10 +55,15 @@ class ExportControlAgent:
 
             self.status_current = value
 
-        def on_reading_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):           
-            value = customize.parse_power_payload(msg.payload, self.config.command.min_power, self.config.command.max_power)
+        def on_reading_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
+            try:
+                value = customize.parse_power_payload(msg.payload, self.config.command.min_power, self.config.command.max_power)
+            except Exception as ex:
+                logging.warning(f"customize.parse_power_payload failed: {ex}")
+                return
+
             self.__received_message(msg, "reading", value)
-          
+
             cmdval: float | None = None
             if (value is not None):
                 cmdval = self.limitcalc.add_reading(value)
@@ -67,18 +77,29 @@ class ExportControlAgent:
                         logging.info(f"Published limit: '{cmdpayload}', Result: '{r}'")
 
                 try:
-                    customize.command_to_generic(cmdval,self.config.command.min_power, self.config.command.max_power, self.config.customize.command)
+                    customize.command_to_generic(cmdval, self.config.command.min_power, self.config.command.max_power, self.config.customize.command)
                 except Exception as ex:
                     logging.warning(f"customize.command_to_generic failed: {ex}")
+
+        def on_subscribe(client, userdata, mid, granted_qos):
+            logging.debug(f"Subscribe acknowledged for: M-ID: {mid}, granted qos: {granted_qos}")
+
+        def on_unsubscribe(client, userdata, mid):
+            logging.debug(f"Unsubscribe acknowledged for: M-ID: {mid}")
 
         client = mqtt.Client(
             client_id=self.config.mqtt.client_id,
             clean_session=self.config.mqtt.clean_session,
-            protocol=self.config.mqtt.protocol,
+            protocol=self.config.mqtt.protocol
         )
+
+        if self.mqtt_log:
+            client.enable_logger(logging.root)
 
         client.on_connect = on_connect
         client.on_disconnect = on_disconnect
+        client.on_subscribe = on_subscribe
+        client.on_unsubscribe = on_unsubscribe
         client.message_callback_add(self.config.mqtt.topics.read_power, on_reading_message)
 
         if self.config.mqtt.topics.status:
@@ -105,14 +126,16 @@ class ExportControlAgent:
 
     @staticmethod
     def __subscribe(client: mqtt.Client, topic: str):
-        client.subscribe(topic)
-        logging.debug(f"Subscribed to '{topic}'")
+        r = client.subscribe(topic)
+        logging.debug(f"Subscribed to '{topic}', M-ID: {r[1]}, Code: {r[0]} - \"{mqtt.error_string(r[0])}\"")
 
     @staticmethod
     def __unsubscribe(client: mqtt.Client, topic: str):
-        client.unsubscribe(topic)
-        logging.debug(f"Unsubscribed from '{topic}'")
+        r = client.unsubscribe(topic)
+        logging.debug(f"Unsubscribed from '{topic}', M-ID: {r[1]}, Code: {r[0]} - \"{mqtt.error_string(r[0])}\"")
 
     @staticmethod
     def __received_message(msg: mqtt.MQTTMessage, type: str, parsed):
-        logging.debug(f"Received {type} message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}' -> {parsed}")
+        # Skip str formating overhead on not debug (payload can be big)
+        if logging.root.level == logging.DEBUG:
+            logging.debug(f"Received '{type}' message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}' was retained '{msg.retain}' -> {parsed}")
