@@ -253,6 +253,9 @@ class CommandConfig:
             raise ValueError(f"CommandConfig: Invalid throttle: '{j_throttle}'")
 
         j_min_diff = json.get("minDiff")
+        if type(j_min_diff) is int:
+            j_min_diff = float(j_min_diff)
+
         if type(j_min_diff) is not float or j_min_diff < 0:
             raise ValueError(f"CommandConfig: Invalid minDiff: '{j_min_diff}'")
 
