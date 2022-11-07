@@ -74,9 +74,17 @@ See [Docs](/docs/Customize.md)
 
 ## How to run
 
-- Run with verbose logging: `python .\src\main.py .\src\config\config.json --verbose`
 - Run normal: `python .\src\main.py .\src\config\config.json`
 - Run with VSCode ("launch.json" should be included)
+
+### Arguments
+
+- Entrypoint: `/src/main.py`
+- Required (positional) argument:
+  - `(path to config.json)`: can be relative or absolute
+- Optional arguments:
+  - `--verbose` : detailed logging
+  - `--mqttdiag`: additional mqtt diagnostics
 
 ## Docker support
 
