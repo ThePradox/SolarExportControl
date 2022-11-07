@@ -21,13 +21,13 @@ If your consumption is lower than your target: Increase the limit on your solar 
 
 - Most MQTT settings exposed
 - Configurable command behaviour:
-        - Min limit
-        - Relative (%) or absolute (W)
-        - Throttle amount of commands
-        - Minimum difference to last command
+  - Min limit
+  - Relative (%) or absolute (W)
+  - Throttle amount of commands
+  - Minimum difference to last command
 - Configurable power reading:
-        - Offset
-        - Smoothing: Average over X samples
+  - Offset
+  - Smoothing: Average over X samples
 - Configurable sleep mode. Turn off during night!
 - Scriptable calibration
 - Scriptable generic limit callback: Send your inverter limit anywhere!
