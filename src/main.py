@@ -1,7 +1,7 @@
 import sys
 MIN_PYTHON = (3, 10)
-print (sys.version_info)
 if sys.version_info < MIN_PYTHON:
+    print (sys.version_info)
     sys.exit("Python %s.%s or later is required.\n" % MIN_PYTHON)
 
 import argparse, logging, pathlib
@@ -11,7 +11,8 @@ from core.agent import ExportControlAgent
 
 argparser = argparse.ArgumentParser(prog="SolarExportControl", description="Listens to a mqtt power reading topic and publishes power limits to mqtt topic based on a configured power target.")
 argparser.add_argument("config", type=str, help="path to config file")
-argparser.add_argument("-v", "--verbose", action="store_true")
+argparser.add_argument("-v", "--verbose",help="enables detailed logging", action="store_true")
+argparser.add_argument("--mqttdiag", help="enables extra mqtt diagnostics", action="store_true")
 args = argparser.parse_args()
 
 config_path = pathlib.Path(args.config).resolve()
@@ -29,5 +30,5 @@ except Exception as ex:
     sys.exit(f"Failed to load config: '{ex.args}'")
 
 
-agent = ExportControlAgent(appconfig)
+agent = ExportControlAgent(appconfig, args.mqttdiag)
 agent.run()
