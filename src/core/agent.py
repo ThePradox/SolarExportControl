@@ -13,7 +13,7 @@ class ExportControlAgent:
         self.mqtt_log = mqtt_log
 
     def run(self) -> None:
-        def on_connect(client: mqtt.Client, userdata, flags, rc):
+        def on_connect(client: mqtt.Client, ud, flags, rc, props=None):
             logging.info(f"Connection response: {rc} - \"{mqtt.connack_string(rc)}\", flags: {flags}")
 
             if rc != mqtt.CONNACK_ACCEPTED:
@@ -34,10 +34,10 @@ class ExportControlAgent:
             if self.status_current:
                 self.__subscribe(client, self.config.mqtt.topics.read_power)
 
-        def on_disconnect(client: mqtt.Client, userdata, rc):
+        def on_disconnect(client: mqtt.Client, userdata, rc, props=None):
             logging.warning(f"Disconnected: {rc} - \"{mqtt.error_string(rc)}\"")
 
-        def on_status_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
+        def on_status_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None):
             value = customize.parse_status_payload(msg.payload, self.status_current)
             self.__received_message(msg, "status", value)
 
@@ -55,7 +55,7 @@ class ExportControlAgent:
 
             self.status_current = value
 
-        def on_reading_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
+        def on_reading_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None):
             try:
                 value = customize.parse_power_payload(msg.payload, self.config.command.min_power, self.config.command.max_power)
             except Exception as ex:
@@ -81,15 +81,22 @@ class ExportControlAgent:
                 except Exception as ex:
                     logging.warning(f"customize.command_to_generic failed: {ex}")
 
-        def on_subscribe(client, userdata, mid, granted_qos):
-            logging.debug(f"Subscribe acknowledged for: M-ID: {mid}, granted qos: {granted_qos}")
+        def on_subscribe(client, userdata, mid, granted_qos_or_rcs, props=None):
+            logging.debug(f"Subscribe acknowledged for: M-ID: {mid}")
 
-        def on_unsubscribe(client, userdata, mid):
+        def on_unsubscribe(client, userdata, mid, props=None, rc=None):
             logging.debug(f"Unsubscribe acknowledged for: M-ID: {mid}")
+
+        vers_clean_session = self.config.mqtt.clean_session
+        vers_clean_start = mqtt.MQTT_CLEAN_START_FIRST_ONLY
+
+        if self.config.mqtt.protocol == mqtt.MQTTv5:
+            vers_clean_session = None
+            vers_clean_start = self.config.mqtt.clean_session
 
         client = mqtt.Client(
             client_id=self.config.mqtt.client_id,
-            clean_session=self.config.mqtt.clean_session,
+            clean_session=vers_clean_session,
             protocol=self.config.mqtt.protocol
         )
 
@@ -116,10 +123,10 @@ class ExportControlAgent:
                 payload=self.config.mqtt.last_will.payload,
                 retain=self.config.mqtt.last_will.retain)
 
-        client.connect(
-            host=self.config.mqtt.host,
-            port=self.config.mqtt.port,
-            keepalive=self.config.mqtt.keepalive)
+        client.connect(host=self.config.mqtt.host,
+                       port=self.config.mqtt.port,
+                       keepalive=self.config.mqtt.keepalive,
+                       clean_start=vers_clean_start)
 
         logging.info("Connecting...")
         client.loop_forever()
