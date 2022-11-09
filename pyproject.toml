@@ -1,0 +1,12 @@
+[project]
+name = "SolarExportControl"
+version = "1.0.0"
+description = "Limits your solar inverter to match your desired power consumption!"
+readme= "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+
+[project.urls]
+homepage = "https://github.com/ThePradox/SolarExportControl"
+documentation = "https://github.com/ThePradox/SolarExportControl"
+repository = "https://github.com/ThePradox/SolarExportControl"
