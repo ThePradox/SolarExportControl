@@ -15,10 +15,11 @@ class PowerReadingSmoothingType(Enum):
 
 
 class AppConfig:
-    def __init__(self, mqtt: MqttConfig, cmd: CommandConfig, reading: ReadingConfig, customize: CustomizeConfig) -> None:
+    def __init__(self, mqtt: MqttConfig, cmd: CommandConfig, reading: ReadingConfig, meta: MetaControlConfig | None, customize: CustomizeConfig) -> None:
         self.mqtt = mqtt
         self.command = cmd
         self.reading = reading
+        self.meta = meta
         self.customize = customize
 
     @staticmethod
@@ -44,13 +45,18 @@ class AppConfig:
 
         o_reading = ReadingConfig.from_json(j_reading)
 
+        o_meta = None
+        j_meta = jf.get("meta")
+        if type(j_meta) is dict:
+            o_meta = MetaControlConfig.from_json(j_meta)
+
         j_cust = jf.get("customize")
         if type(j_cust) is not dict:
             raise ValueError("Missing config segment: customize")
 
         o_cust = CustomizeConfig.from_json(j_cust)
 
-        return AppConfig(o_mqtt, o_cmd, o_reading, o_cust)
+        return AppConfig(o_mqtt, o_cmd, o_reading, o_meta,  o_cust)
 
 
 class MqttConfig:
@@ -128,7 +134,7 @@ class MqttConfig:
                           protocol=j_protocol,
                           retain=j_retain,
                           client_id=j_client_id,
-                          clean_session=j_clean_session,           
+                          clean_session=j_clean_session,
                           auth=o_auth)
 
 
@@ -291,3 +297,21 @@ class CustomizeConfig:
             j_command = {}
 
         return CustomizeConfig(status=j_status, calibration=j_calib, command=j_command)
+
+
+class MetaControlConfig:
+    def __init__(self, active: bool, prefix: str) -> None:
+        self.active = active
+        self.prefix = prefix
+
+    @staticmethod
+    def from_json(json: dict) -> MetaControlConfig:
+        j_active = json.get("active")
+        if type(j_active) is not bool:
+            raise ValueError(f"MetaControlConfig: Invalid active: '{j_active}'")
+
+        j_prefix = json.get("prefix")
+        if type(j_prefix) is not str or not j_prefix:
+            raise ValueError(f"MetaControlConfig: Invalid prefix: '{j_prefix}'")
+
+        return MetaControlConfig(j_active, j_prefix)

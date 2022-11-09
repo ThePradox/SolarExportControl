@@ -31,6 +31,10 @@
         "smoothing": null,
         "smoothingSampleSize": 0
     },
+    "meta": {
+        "active": true,
+        "prefix": ""
+    },
     "customize": {
         "status": {},
         "calibration": {},
