@@ -61,8 +61,7 @@ class MqttConfig:
                  retain: bool | None = None,
                  client_id: str | None = None,
                  clean_session: bool | None = None,
-                 auth: MqttAuthConfig | None = None,
-                 last_will: MqttLwtConfig | None = None) -> None:
+                 auth: MqttAuthConfig | None = None) -> None:
         self.host: str = host
         self.port: int = port if port is not None else 1883
         self.keepalive: int = keepalive if keepalive is not None else 60
@@ -72,7 +71,6 @@ class MqttConfig:
         self.clean_session = clean_session if clean_session is not None else True
         self.topics: MqttTopicConfig = topics
         self.auth: MqttAuthConfig | None = auth
-        self.last_will: MqttLwtConfig | None = last_will
 
     @staticmethod
     def from_json(json: dict) -> MqttConfig:
@@ -123,14 +121,6 @@ class MqttConfig:
         if type(j_auth) is dict and j_auth.get("username"):
             o_auth = MqttAuthConfig.from_json(j_auth)
 
-        o_lwt: MqttLwtConfig | None = None
-        j_lwt = json.get("lastWill")
-        if o_topics.last_will:
-            if type(j_lwt) is dict:
-                o_lwt = MqttLwtConfig.from_json(j_lwt)
-            else:
-                o_lwt = MqttLwtConfig.from_json({})
-
         return MqttConfig(host=j_host,
                           topics=o_topics,
                           port=j_port,
@@ -138,17 +128,15 @@ class MqttConfig:
                           protocol=j_protocol,
                           retain=j_retain,
                           client_id=j_client_id,
-                          clean_session=j_clean_session,
-                          last_will=o_lwt,
+                          clean_session=j_clean_session,           
                           auth=o_auth)
 
 
 class MqttTopicConfig:
-    def __init__(self, read_power: str, write_limit: str | None, status: str | None, last_will: str | None) -> None:
+    def __init__(self, read_power: str, write_limit: str | None, status: str | None) -> None:
         self.read_power: str = read_power
         self.write_limit: str | None = write_limit
         self.status: str | None = status
-        self.last_will: str | None = last_will
 
     @staticmethod
     def from_json(json: dict) -> MqttTopicConfig:
@@ -164,11 +152,7 @@ class MqttTopicConfig:
         if type(j_status) is not str or not j_status:
             j_status = None
 
-        j_lwt = json.get("lastWill")
-        if type(j_lwt) is not str or not j_lwt:
-            j_lwt = None
-
-        return MqttTopicConfig(read_power=j_read_power, write_limit=j_write_limit, status=j_status, last_will=j_lwt)
+        return MqttTopicConfig(read_power=j_read_power, write_limit=j_write_limit, status=j_status)
 
 
 class MqttAuthConfig:
@@ -187,24 +171,6 @@ class MqttAuthConfig:
             j_password = None
 
         return MqttAuthConfig(j_username, j_password)
-
-
-class MqttLwtConfig:
-    def __init__(self, payload: str, retain: bool) -> None:
-        self.payload: str = payload
-        self.retain: bool = retain
-
-    @staticmethod
-    def from_json(json: dict) -> MqttLwtConfig:
-        j_payload = json.get("payload")
-        if type(j_payload) is not str:
-            j_payload = ""
-
-        j_retain = json.get("retain")
-        if type(j_retain) is not bool:
-            j_retain = False
-
-        return MqttLwtConfig(payload=j_payload, retain=j_retain)
 
 
 class CommandConfig:

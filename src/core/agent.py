@@ -116,13 +116,6 @@ class ExportControlAgent:
         if self.config.mqtt.auth:
             client.username_pw_set(self.config.mqtt.auth.username, self.config.mqtt.auth.password)
 
-        # Use lwt
-        if self.config.mqtt.topics.last_will and self.config.mqtt.last_will:
-            client.will_set(
-                topic=self.config.mqtt.topics.last_will,
-                payload=self.config.mqtt.last_will.payload,
-                retain=self.config.mqtt.last_will.retain)
-
         client.connect(host=self.config.mqtt.host,
                        port=self.config.mqtt.port,
                        keepalive=self.config.mqtt.keepalive,

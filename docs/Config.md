@@ -18,18 +18,12 @@ Found in `/src/config/config.json`. Properties not required can be `null`
     "topics": {
         "readPower": "",
         "writeLimit": null,
-        "status": null,
-        "lastWill": null
+        "status": null
     },
 
     "auth": {
         "username": "",
         "password": null
-    },
-
-    "lastWill": {
-        "payload": null,
-        "retain": false
     }
 },
 ...
@@ -50,7 +44,6 @@ Setup basic mqtt properties
 |                   | `mqtt.cleanSession`    | bool              | true          | client type. See [clean_session](https://pypi.org/project/paho-mqtt/#constructor-reinitialise)
 | :red_circle:      | `mqtt.topics`          | object            |               | controls mqtt topics
 |                   | `mqtt.auth`            | object            | null          | controls mqtt auth
-|                   | `mqtt.lastWill`        | object            | null          | controls mqtt lwt
 
 ### MQTT.TOPICS Properties
 
@@ -61,7 +54,6 @@ Setup mqtt topics
 | :red_circle:      | `topics.readPower`     | string           |               | MQTT-Topic to read current power draw
 |                   | `topics.WriteLimit`    | string           |               | MQTT-Topic to write power limit to
 |                   | `topics.status`        | string           |               | MQTT-Topic to listens for status updates
-|                   | `topics.lastWill`      | string           |               | MQTT-Topic that the will message should be published on
 
 ### MQTT.AUTH Properties
 
@@ -71,15 +63,6 @@ Setup mqtt broker authentication. **Will only be used If `username` is not empty
 |---                | ---                    | ---              |---            |---
 | :red_circle:      | `auth.username`        | string           |               | set a username for broker authentication
 |                   | `auth.password`        | string           | null          | set a password for broker authentication
-
-### MQTT.LASTWILL Properties
-
-Setup mqtt last will. **Will only be used if `topics.lastWill` is not empty**
-
-|Req                | Property               | Type             | Default       | Description
-|---                | ---                    | ---              |---            |---
-|                   | `lastWill.payload`     | string           | (empty string)| set a payload to publish as last will
-|                   | `lastWill.retain`      | bool             | false         | set the last will message to be retained (true) or not (false)
 
 <br />
 

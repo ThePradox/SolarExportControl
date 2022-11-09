@@ -10,16 +10,11 @@
         "topics": {
             "readPower": "",
             "writeLimit": null,
-            "status": null,
-            "lastWill": null
+            "status": null
         },
         "auth": {
             "username": "",
             "password": null
-        },
-        "lastWill": {
-            "payload": null,
-            "retain": false
         }
     },
     "command": {
