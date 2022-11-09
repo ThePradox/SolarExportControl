@@ -1,6 +1,6 @@
 import logging
 import statistics
-import core.setup as setup
+import core.appconfig as appconfig
 import config.customize as customize
 from typing import Deque, Callable
 from collections import deque
@@ -8,8 +8,8 @@ from datetime import datetime
 
 
 class LimitCalculator:
-    def __init__(self, config: setup.AppConfig) -> None:
-        self.config: setup.AppConfig = config
+    def __init__(self, config: appconfig.AppConfig) -> None:
+        self.config: appconfig.AppConfig = config
         self.last_command_time: datetime = datetime.min
         self.last_command_value: float = config.command.min_power
         self.last_command_has: bool = False
@@ -19,7 +19,7 @@ class LimitCalculator:
         deqSize: int = self.config.reading.smoothingSampleSize if self.config.reading.smoothingSampleSize > 0 else 1
 
         sampleFunc: Callable[[float], float]
-        if self.config.reading.smoothing == setup.PowerReadingSmoothingType.AVG:
+        if self.config.reading.smoothing == appconfig.PowerReadingSmoothingType.AVG:
             sampleFunc = self.__get_smoothing_avg
         else:
             sampleFunc = self.__get_smoothing_none
@@ -42,7 +42,7 @@ class LimitCalculator:
             self.last_command_has = True
             logging.info(f"Calibration value is: {self.last_command_value}")
 
-            if self.config.command.type == setup.InverterCommandType.RELATIVE:
+            if self.config.command.type == appconfig.InverterCommandType.RELATIVE:
                 return self.__convert_to_relative_command(self.last_command_value)
             else:
                 return self.last_command_value
@@ -69,7 +69,7 @@ class LimitCalculator:
                 return None
 
         command: float
-        if self.config.command.type == setup.InverterCommandType.RELATIVE:
+        if self.config.command.type == appconfig.InverterCommandType.RELATIVE:
             command = self.__convert_to_relative_command(limit)
         else:
             command = limit

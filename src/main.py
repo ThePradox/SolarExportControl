@@ -5,7 +5,7 @@ if sys.version_info < MIN_PYTHON:
     sys.exit("Python %s.%s or later is required.\n" % MIN_PYTHON)
 
 import argparse, logging, pathlib
-import core.setup
+from core.appconfig import AppConfig
 from core.agent import ExportControlAgent
 
 
@@ -25,7 +25,7 @@ logging.basicConfig(level=loglvl, format="%(asctime)s | %(levelname).3s | %(mess
 
 
 try:
-    appconfig = core.setup.AppConfig.from_json_file(str(config_path))
+    appconfig = AppConfig.from_json_file(str(config_path))
 except Exception as ex:
     sys.exit(f"Failed to load config: '{ex.args}'")
 

@@ -1,13 +1,13 @@
 import logging
 import config.customize as customize
-import core.setup as setup
+import core.appconfig as appconfig
 from core.limit import LimitCalculator
 from paho.mqtt import client as mqtt
 
 
 class ExportControlAgent:
-    def __init__(self, config: setup.AppConfig, mqtt_log: bool = False) -> None:
-        self.config: setup.AppConfig = config
+    def __init__(self, config: appconfig.AppConfig, mqtt_log: bool = False) -> None:
+        self.config: appconfig.AppConfig = config
         self.limitcalc: LimitCalculator = LimitCalculator(config)
         self.status_current = True
         self.mqtt_log = mqtt_log
