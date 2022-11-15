@@ -80,12 +80,24 @@ class LimitCalculator:
 
         return command
 
-    def reset(self) -> None:
-        logging.debug("Reset has been called")
+    def get_limit_command_min(self):
+        if self.config.command.type == appconfig.InverterCommandType.RELATIVE:
+            return self.__convert_to_relative_command(self.command_min)
+        else:
+            return self.command_min
+
+    def get_limit_command_max(self):
+        if self.config.command.type == appconfig.InverterCommandType.RELATIVE:
+            return self.__convert_to_relative_command(self.command_max)
+        else:
+            return self.command_max
+
+    def reset(self) -> None:     
         self.__samples.clear()
         self.last_command_time: datetime = datetime.min
         self.last_command_value: float = float(0)
         self.last_command_has: bool = False
+        logging.debug("Limit context was reseted")
 
     def __get_calibration(self) -> float:
         try:
