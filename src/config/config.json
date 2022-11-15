@@ -14,7 +14,7 @@
         },
         "auth": {
             "username": "",
-            "password": null
+            "password": ""
         }
     },
     "command": {
@@ -32,8 +32,8 @@
         "smoothingSampleSize": 0
     },
     "meta": {
-        "active": true,
-        "prefix": ""
+        "prefix": "meta/",
+        "resetInverterLimitOnInactive": true
     },
     "customize": {
         "status": {},

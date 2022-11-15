@@ -1,21 +1,21 @@
 from __future__ import annotations
-from enum import Enum
+from enum import IntEnum
 import paho.mqtt.client as mqtt
 import json
 
 
-class InverterCommandType(Enum):
+class InverterCommandType(IntEnum):
     ABSOLUTE = 1
     RELATIVE = 2
 
 
-class PowerReadingSmoothingType(Enum):
+class PowerReadingSmoothingType(IntEnum):
     NONE = 1,
     AVG = 2
 
 
 class AppConfig:
-    def __init__(self, mqtt: MqttConfig, cmd: CommandConfig, reading: ReadingConfig, meta: MetaControlConfig | None, customize: CustomizeConfig) -> None:
+    def __init__(self, mqtt: MqttConfig, cmd: CommandConfig, reading: ReadingConfig, meta: MetaControlConfig, customize: CustomizeConfig) -> None:
         self.mqtt = mqtt
         self.command = cmd
         self.reading = reading
@@ -45,10 +45,11 @@ class AppConfig:
 
         o_reading = ReadingConfig.from_json(j_reading)
 
-        o_meta = None
         j_meta = jf.get("meta")
-        if type(j_meta) is dict:
-            o_meta = MetaControlConfig.from_json(j_meta)
+        if type(j_meta) is not dict:
+            raise ValueError("Missing config segment: meta")
+
+        o_meta = MetaControlConfig.from_json(j_meta)
 
         j_cust = jf.get("customize")
         if type(j_cust) is not dict:
@@ -300,18 +301,20 @@ class CustomizeConfig:
 
 
 class MetaControlConfig:
-    def __init__(self, active: bool, prefix: str) -> None:
-        self.active = active
+    def __init__(self, prefix: str, reset_inverter_on_inactive: bool) -> None:
         self.prefix = prefix
+        self.reset_inverter_on_inactive = reset_inverter_on_inactive
 
     @staticmethod
     def from_json(json: dict) -> MetaControlConfig:
-        j_active = json.get("active")
-        if type(j_active) is not bool:
-            raise ValueError(f"MetaControlConfig: Invalid active: '{j_active}'")
+        j_reset = json.get("resetInverterLimitOnInactive")
+        if type(j_reset) is not bool:
+            raise ValueError(f"MetaControlConfig: Invalid resetInverterLimitOnInactive: '{j_reset}'")
 
         j_prefix = json.get("prefix")
         if type(j_prefix) is not str or not j_prefix:
             raise ValueError(f"MetaControlConfig: Invalid prefix: '{j_prefix}'")
+        elif j_prefix.startswith("/"):
+            raise ValueError(f"MetaControlConfig: prefix cannot start with slash: '{j_prefix}'")
 
-        return MetaControlConfig(j_active, j_prefix)
+        return MetaControlConfig(j_prefix, j_reset)
