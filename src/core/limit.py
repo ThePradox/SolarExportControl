@@ -112,13 +112,13 @@ class LimitCalculator:
 
         return result
 
-    def get_limit_command_min(self):
+    def get_command_min(self):
         if self.config.command.type == appconfig.InverterCommandType.RELATIVE:
             return self.__convert_to_relative_command(self.command_min)
         else:
             return self.command_min
 
-    def get_limit_command_max(self):
+    def get_command_max(self):
         if self.config.command.type == appconfig.InverterCommandType.RELATIVE:
             return self.__convert_to_relative_command(self.command_max)
         else:

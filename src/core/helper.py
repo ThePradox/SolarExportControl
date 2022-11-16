@@ -1,15 +1,18 @@
 import logging
 import datetime
 import core.appconfig as appconfig
-from core.limit import LimitCalculator
+from core.limit import LimitCalculator, LimitCalculatorResult
 from paho.mqtt import client as mqtt
 from typing import Callable, Any, List
 
 
 MQTT_TOPIC_META_CMD_ACTIVE = "/cmd/active"
 
-MQTT_TOPIC_META_TELE_LAST_LIMIT = "/limit"
+MQTT_TOPIC_META_TELE_LIMIT = "/limit"
+MQTT_TOPIC_META_TELE_CMD = "/command"
 MQTT_TOPIC_META_TELE_OVERSHOOT = "/overshoot"
+MQTT_TOPIC_META_TELE_READING = "/reading"
+MQTT_TOPIC_META_TELE_SAMPLE = "/sample"
 MQTT_TOPIC_META_TELE_INVERTER_STATUS = "/inverter_status"
 MQTT_TOPIC_META_TELE_ACTIVE = "/active"
 MQTT_TOPIC_META_TELE_ONLINE = "/status"
@@ -81,7 +84,7 @@ class MqttHelper:
         for topic in topics:
             logging.debug(f"Unsubscribed from '{topic}' -> M-ID: {r[1]}, Code: {r[0]} - \"{mqtt.error_string(r[0])}\"")
             self.subs.remove(topic)
-            
+
     def unsubscribe_all(self) -> None:
         if not len(self.subs):
             return
@@ -145,7 +148,7 @@ class MqttHelper:
 
     def loop_forever(self):
         while True:
-            self.client.loop(timeout=1.0)        
+            self.client.loop(timeout=1.0)
             due_actions = self.scheduler.get_due()
             if due_actions is not None:
                 for action in due_actions:
@@ -161,7 +164,10 @@ class MetaControlHelper(MqttHelper):
         self.topic_cmd_active = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_CMD_ACTIVE)
         self.topic_tele_active = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_ACTIVE)
         self.topic_tele_online = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_ONLINE)
-        self.topic_tele_last_limit = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_LAST_LIMIT)
+        self.topic_tele_limit = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_LIMIT)
+        self.topic_tele_cmd = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_CMD)
+        self.topic_tele_reading = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_READING)
+        self.topic_tele_sample = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_SAMPLE)
         self.topic_tele_overshoot = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_OVERSHOOT)
         self.topic_tele_inverter_status = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_INVERTER_STATUS)
         self.__on_cmd_active: Callable[[bool], None] | None = None
@@ -177,13 +183,41 @@ class MetaControlHelper(MqttHelper):
         payload = MQTT_PL_META_TELE_ONLINE_TRUE if online else MQTT_PL_META_TELE_ONLINE_FALSE
         self.publish(self.topic_tele_online, payload, 0, True)
 
-    def publish_meta_lastlimit(self, limit: str) -> None:
-        self.publish(self.topic_tele_last_limit, limit, 0, True)
+    def publish_meta_limit(self, limit: str) -> None:
+        self.publish(self.topic_tele_limit, limit, 0, False)
+
+    def publish_meta_cmd(self, cmd: str) -> None:
+        self.publish(self.topic_tele_cmd, cmd, 0, False)
 
     def publish_meta_overshoot(self, overshoot: str) -> None:
-        self.publish(self.topic_tele_overshoot, overshoot, 0, True)
+        self.publish(self.topic_tele_overshoot, overshoot, 0, False)
 
-    def publish_meta_inverter_status(self, status:bool) -> None:
+    def publish_meta_reading(self, reading: str) -> None:
+        self.publish(self.topic_tele_reading, reading, 0, False)
+
+    def publish_meta_sample(self, sample: str) -> None:
+        self.publish(self.topic_tele_sample, sample, 0, False)
+
+    def publish_meta_teles(self, result: LimitCalculatorResult) -> None:
+        self.publish_meta_reading(f"{result.reading:.6f}")
+        self.publish_meta_sample(f"{result.sample:.6f}")
+
+        if result.overshoot is None:
+            return
+
+        self.publish_meta_overshoot(f"{result.overshoot:.6f}")
+
+        if result.limit is None:
+            return
+
+        self.publish_meta_limit(f"{result.limit:.6f}")
+
+        if result.command is None:
+            return
+
+        self.publish_meta_cmd(f"{result.command:.6f}")
+
+    def publish_meta_inverter_status(self, status: bool) -> None:
         payload = MQTT_PL_META_TELE_INVERTER_STATUS_TRUE if status else MQTT_PL_META_TELE_INVERTER_STATUS_FALSE
         self.publish(self.topic_tele_inverter_status, payload, 0, True)
 
@@ -217,10 +251,6 @@ class MetaControlHelper(MqttHelper):
     def unsubscribe_all_but_cmd_active(self) -> None:
         osubs = [sub for sub in self.subs if sub != self.topic_cmd_active]
         self.unsubscribe_many(osubs)
-        
-
-        
-
 
 
 class AppMqttHelper(MetaControlHelper):
@@ -280,10 +310,10 @@ class AppMqttHelper(MetaControlHelper):
         if value is not None:
             self.__on_inverter_status(value)
 
-    def publish_limit(self, limit: str) -> None:
+    def publish_command(self, command: str) -> None:
         if self.config.mqtt.topics.write_limit:
-            r = self.publish(self.config.mqtt.topics.write_limit, limit, 0, self.config.mqtt.retain)
-            logging.info(f"Published limit: '{limit}', Result: '{r}'")
+            r = self.publish(self.config.mqtt.topics.write_limit, command, 0, self.config.mqtt.retain)
+            logging.info(f"Published limit: '{command}', Result: '{r}'")
 
     def subscribe_power_reading(self) -> None:
         self.subscribe(self.config.mqtt.topics.read_power, 0)
@@ -299,6 +329,7 @@ class AppMqttHelper(MetaControlHelper):
         if self.config.mqtt.topics.status:
             self.unsubscribe(self.config.mqtt.topics.status)
 
+
 class ActionScheduler:
     def __init__(self) -> None:
         self.items = []
@@ -312,7 +343,7 @@ class ActionScheduler:
 
     def get_due(self) -> List[Callable] | None:
         now = datetime.datetime.utcnow()
-        
+
         if self.nextTime <= now:
             self.nextTime = datetime.datetime.max
             hits = []
@@ -323,7 +354,6 @@ class ActionScheduler:
                 elif self.nextTime > item[0]:
                     self.nextTime = item[0]
 
-            
             if (len(hits) == 0):
                 return None
 
