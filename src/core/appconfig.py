@@ -276,7 +276,7 @@ class ReadingConfig:
 
 
 class CustomizeConfig:
-    def __init__(self, status: dict, calibration: dict, command: dict):
+    def __init__(self, status: dict, calibration: dict, command: dict) -> None:
         self.status = status
         self.calibration = calibration
         self.command = command

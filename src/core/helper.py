@@ -1,7 +1,7 @@
 import logging
 import datetime
 import core.appconfig as appconfig
-from core.limit import LimitCalculator, LimitCalculatorResult
+from core.limit import LimitCalculatorResult
 from paho.mqtt import client as mqtt
 from typing import Callable, Any, List
 
@@ -25,10 +25,6 @@ MQTT_PL_META_TELE_INVERTER_STATUS_TRUE = "on"
 MQTT_PL_META_TELE_INVERTER_STATUS_FALSE = "off"
 
 
-#OnMessageCallbackType = set[Callable[[mqtt.Client, Any, mqtt.MQTTMessage, Any], None]]
-#OnCmdMetaActive = set[Callable[[mqtt.Client, bool], None]]
-
-
 class MqttHelper:
     def __init__(self, config: appconfig.AppConfig, loglvl=logging.root.level, mqttLogging: bool = False) -> None:
         self.config = config
@@ -36,6 +32,10 @@ class MqttHelper:
         self.scheduler = ActionScheduler()
         self.subs: List[str] = []
 
+        self.__on_connect_success = None
+        self.__on_connect_error = None   
+        self.__on_disconnect = None
+        
         vers_clean_session = config.mqtt.clean_session
 
         if config.mqtt.protocol == mqtt.MQTTv5:
@@ -60,7 +60,17 @@ class MqttHelper:
 
         self.client = client
 
-    def schedule(self, seconds: int, action: Callable):
+    @staticmethod
+    def received_message(msg: mqtt.MQTTMessage, type: str, parsed) -> None:
+        # Skip str formating overhead on not debug (payload can be big)
+        if logging.root.level == logging.DEBUG:
+            logging.debug(f"Received '{type}' message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}' was retained '{msg.retain}' -> {parsed}")
+
+    @staticmethod
+    def combine_topic_path(prefix: str, topic: str) -> str:
+        return f'{prefix.removesuffix("/")}/{topic.removeprefix("/")}'
+
+    def schedule(self, seconds: int, action: Callable) -> None:
         self.scheduler.schedule(seconds, action)
 
     def subscribe(self, topic: str, qos: int = 0) -> None:
@@ -80,6 +90,9 @@ class MqttHelper:
         logging.debug(f"Unsubscribed from '{topic}' -> M-ID: {r[1]}, Code: {r[0]} - \"{mqtt.error_string(r[0])}\"")
 
     def unsubscribe_many(self, topics: List[str]) -> None:
+        if len(topics) == 0:
+            return 
+
         r = self.client.unsubscribe(topics)
         for topic in topics:
             logging.debug(f"Unsubscribed from '{topic}' -> M-ID: {r[1]}, Code: {r[0]} - \"{mqtt.error_string(r[0])}\"")
@@ -90,18 +103,8 @@ class MqttHelper:
             return
         self.unsubscribe_many([x for x in self.subs])
 
-    def publish(self, topic: str, payload: str | None, qos: int = 0, retain: bool = False, props=None):
-        self.client.publish(topic, payload, qos, retain, props)
-
-    @staticmethod
-    def received_message(msg: mqtt.MQTTMessage, type: str, parsed) -> None:
-        # Skip str formating overhead on not debug (payload can be big)
-        if logging.root.level == logging.DEBUG:
-            logging.debug(f"Received '{type}' message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}' was retained '{msg.retain}' -> {parsed}")
-
-    @staticmethod
-    def combine_topic_path(prefix: str, topic: str) -> str:
-        return f'{prefix.removesuffix("/")}/{topic.removeprefix("/")}'
+    def publish(self, topic: str, payload: str | None, qos: int = 0, retain: bool = False, props=None) -> mqtt.MQTTMessageInfo:
+        return self.client.publish(topic, payload, qos, retain, props)
 
     def connect(self) -> None:
         vers_clean_start = mqtt.MQTT_CLEAN_START_FIRST_ONLY
@@ -114,37 +117,14 @@ class MqttHelper:
                             keepalive=self.config.mqtt.keepalive,
                             clean_start=vers_clean_start)
 
-        logging.info("Connecting client ...")
+        logging.info("Connecting to broker ...")
 
-    def on_connect(self, callback_success: Callable[[], None] | None, callback_error: Callable[[int], None] | None):
+    def on_connect(self, callback_success: Callable[[], None] | None, callback_error: Callable[[int], None] | None) -> None:
         self.__on_connect_success = callback_success
         self.__on_connect_error = callback_error
 
-    def __proxy_on_connect(self, client: mqtt.Client, ud, flags, rc, props=None):
-        logging.info(f"Connection response -> {rc} - \"{mqtt.connack_string(rc)}\", flags: {flags}")
-        self.scheduler.clear()
-
-        if rc == mqtt.CONNACK_ACCEPTED:
-            if self.__on_connect_success is not None:
-                self.__on_connect_success()
-        else:
-            if self.__on_connect_error is not None:
-                self.__on_connect_error(rc)
-
-    def on_disconnect(self, callback: Callable[[int], None] | None):
+    def on_disconnect(self, callback: Callable[[int], None] | None) -> None:
         self.__on_disconnect = callback
-
-    def __proxy_on_disconnect(self, client: mqtt.Client, userdata, rc, props=None):
-        logging.warning(f"Disconnected: {rc} - \"{mqtt.error_string(rc)}\"")
-        self.scheduler.clear()
-        if self.__on_disconnect is not None:
-            self.__on_disconnect(rc)
-
-    def __proxy_on_subscribe(self, client, userdata, mid, granted_qos_or_rcs, props=None):
-        logging.debug(f"Subscribe acknowledged -> M-ID: {mid}")
-
-    def __proxy_on_unsubscribe(self, client, userdata, mid, props=None, rc=None):
-        logging.debug(f"Unsubscribe acknowledged -> M-ID: {mid}")
 
     def loop_forever(self):
         while True:
@@ -156,6 +136,35 @@ class MqttHelper:
                         action()
                     except Exception as ex:
                         logging.warning(f"Failed to execute scheduled action: {ex}")
+
+   
+#region Event proxys
+
+    def __proxy_on_connect(self, client: mqtt.Client, ud, flags, rc, props=None) -> None:
+        logging.info(f"Connection response -> {rc} - \"{mqtt.connack_string(rc)}\", flags: {flags}")
+        self.scheduler.clear()
+
+        if rc == mqtt.CONNACK_ACCEPTED:
+            if self.__on_connect_success is not None:
+                self.__on_connect_success()
+        else:
+            if self.__on_connect_error is not None:
+                self.__on_connect_error(rc)
+
+    def __proxy_on_disconnect(self, client: mqtt.Client, userdata, rc, props=None) -> None:
+        logging.warning(f"Disconnected: {rc} - \"{mqtt.error_string(rc)}\"")
+        self.scheduler.clear()
+        if self.__on_disconnect is not None:
+            self.__on_disconnect(rc)
+
+    def __proxy_on_subscribe(self, client, userdata, mid, granted_qos_or_rcs, props=None) -> None:
+        logging.debug(f"Subscribe acknowledged -> M-ID: {mid}")
+
+    def __proxy_on_unsubscribe(self, client, userdata, mid, props=None, rc=None) -> None:
+        logging.debug(f"Unsubscribe acknowledged -> M-ID: {mid}")
+
+#endregion
+
 
 
 class MetaControlHelper(MqttHelper):
@@ -170,9 +179,9 @@ class MetaControlHelper(MqttHelper):
         self.topic_tele_sample = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_SAMPLE)
         self.topic_tele_overshoot = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_OVERSHOOT)
         self.topic_tele_inverter_status = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_INVERTER_STATUS)
-        self.__on_cmd_active: Callable[[bool], None] | None = None
+        self.__on_cmd_active: Callable[[bool], None] | None = None     
 
-    def setup_will(self):
+    def setup_will(self) -> None:
         self.client.will_set(self.topic_tele_online, MQTT_PL_META_TELE_ONLINE_FALSE, 0, True)
 
     def publish_meta_active(self, active: bool) -> None:
@@ -199,23 +208,23 @@ class MetaControlHelper(MqttHelper):
         self.publish(self.topic_tele_sample, sample, 0, False)
 
     def publish_meta_teles(self, result: LimitCalculatorResult) -> None:
-        self.publish_meta_reading(f"{result.reading:.6f}")
-        self.publish_meta_sample(f"{result.sample:.6f}")
+        self.publish_meta_reading(f"{result.reading:.4f}")
+        self.publish_meta_sample(f"{result.sample:.4f}")
 
         if result.overshoot is None:
             return
 
-        self.publish_meta_overshoot(f"{result.overshoot:.6f}")
+        self.publish_meta_overshoot(f"{result.overshoot:.4f}")
 
         if result.limit is None:
             return
 
-        self.publish_meta_limit(f"{result.limit:.6f}")
+        self.publish_meta_limit(f"{result.limit:.4f}")
 
         if result.command is None:
             return
 
-        self.publish_meta_cmd(f"{result.command:.6f}")
+        self.publish_meta_cmd(f"{result.command:.4f}")
 
     def publish_meta_inverter_status(self, status: bool) -> None:
         payload = MQTT_PL_META_TELE_INVERTER_STATUS_TRUE if status else MQTT_PL_META_TELE_INVERTER_STATUS_FALSE
@@ -224,14 +233,14 @@ class MetaControlHelper(MqttHelper):
     def subscribe_cmd_active(self):
         self.subscribe(self.topic_cmd_active)
 
-    def on_cmd_active(self, callback: Callable[[bool], None] | None):
+    def on_cmd_active(self, callback: Callable[[bool], None] | None) -> None:
         self.__on_cmd_active = callback
         if callback is None:
             self.client.message_callback_remove(self.topic_cmd_active)
         else:
             self.client.message_callback_add(self.topic_cmd_active, self.__proxy_on_cmd_active)
 
-    def __proxy_on_cmd_active(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None):
+    def __proxy_on_cmd_active(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None) -> None:
         if self.__on_cmd_active is None:
             return
 
@@ -258,8 +267,8 @@ class AppMqttHelper(MetaControlHelper):
         super().__init__(config, loglvl, mqttLogging)
         self.__on_power_reading: Callable[[float], None] | None = None
         self.__on_inverter_status: Callable[[bool], None] | None = None
-
-    def on_power_reading(self, callback: Callable[[float], None] | None, parser: Callable[[bytes], float | None]):
+       
+    def on_power_reading(self, callback: Callable[[float], None] | None, parser: Callable[[bytes], float | None]) -> None:
         self.__on_power_reading = callback
         self.__parser_power_reading = parser
 
@@ -268,7 +277,19 @@ class AppMqttHelper(MetaControlHelper):
         else:
             self.client.message_callback_add(self.config.mqtt.topics.read_power, self.__proxy_on_power_reading)
 
-    def __proxy_on_power_reading(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None):
+    def on_inverter_status(self, callback: Callable[[bool], None] | None, parser: Callable[[bytes], bool | None]) -> None:
+        if not self.config.mqtt.topics.status:
+            return
+
+        self.__on_inverter_status = callback
+        self.__parser_inverter_status = parser
+
+        if callback is None:
+            self.client.message_callback_remove(self.config.mqtt.topics.status)
+        else:
+            self.client.message_callback_add(self.config.mqtt.topics.status, self.__proxy_on_inverter_status)
+
+    def __proxy_on_power_reading(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None) -> None:
         if self.__on_power_reading is None:
             return
 
@@ -283,19 +304,7 @@ class AppMqttHelper(MetaControlHelper):
         if value is not None:
             self.__on_power_reading(value)
 
-    def on_inverter_status(self, callback: Callable[[bool], None] | None, parser: Callable[[bytes], bool | None]):
-        if not self.config.mqtt.topics.status:
-            return
-
-        self.__on_inverter_status = callback
-        self.__parser_inverter_status = parser
-
-        if callback is None:
-            self.client.message_callback_remove(self.config.mqtt.topics.status)
-        else:
-            self.client.message_callback_add(self.config.mqtt.topics.status, self.__proxy_on_inverter_status)
-
-    def __proxy_on_inverter_status(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None):
+    def __proxy_on_inverter_status(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None) -> None:
         if self.__on_inverter_status is None or not self.config.mqtt.topics.status:
             return
 
@@ -335,7 +344,7 @@ class ActionScheduler:
         self.items = []
         self.nextTime = datetime.datetime.max
 
-    def schedule(self, seconds: int, action: Callable):
+    def schedule(self, seconds: int, action: Callable) -> None:
         when = datetime.datetime.utcnow() + datetime.timedelta(seconds=seconds)
         self.items.append((when, action))
         if self.nextTime > when:
@@ -365,6 +374,6 @@ class ActionScheduler:
             return results
         return None
 
-    def clear(self):
+    def clear(self) -> None:
         self.items.clear()
         self.nextTime = datetime.datetime.max
