@@ -301,9 +301,10 @@ class CustomizeConfig:
 
 
 class MetaControlConfig:
-    def __init__(self, prefix: str, reset_inverter_on_inactive: bool) -> None:
+    def __init__(self, prefix: str, reset_inverter_on_inactive: bool, ha_discovery: HA_DiscoveryConfig | None) -> None:
         self.prefix = prefix
         self.reset_inverter_on_inactive = reset_inverter_on_inactive
+        self.discovery = ha_discovery
 
     @staticmethod
     def from_json(json: dict) -> MetaControlConfig:
@@ -317,4 +318,37 @@ class MetaControlConfig:
         elif j_prefix.startswith("/"):
             raise ValueError(f"MetaControlConfig: prefix cannot start with slash: '{j_prefix}'")
 
-        return MetaControlConfig(j_prefix, j_reset)
+        j_discovery = json.get("homeAssistantDiscovery")
+        o_discovery: HA_DiscoveryConfig | None = None
+        if j_discovery is not None and type(j_discovery) is dict:
+            o_discovery = HA_DiscoveryConfig.from_json(j_discovery)
+
+        return MetaControlConfig(j_prefix, j_reset, o_discovery)
+
+
+class HA_DiscoveryConfig:
+    def __init__(self, enabled: bool, prefix: str, id: int, name: str) -> None:
+        self.enabled = enabled
+        self.prefix = prefix
+        self.id = id
+        self.name = name
+
+    @staticmethod
+    def from_json(json: dict) -> HA_DiscoveryConfig:
+        j_enabled = json.get("enabled")
+        if type(j_enabled) is not bool:
+            raise ValueError(f"HA_DiscoveryConfig: Invalid enabled: '{j_enabled}'")
+
+        j_prefix = json.get("discoveryPrefix")
+        if type(j_prefix) is not str:
+            raise ValueError(f"HA_DiscoveryConfig: Invalid discoveryPrefix: '{j_prefix}'")
+
+        j_id = json.get("id")
+        if type(j_id) is not int:
+            raise ValueError(f"HA_DiscoveryConfig: Invalid id: '{j_id}'")
+
+        j_name = json.get("name")
+        if type(j_name) is not str:
+            raise ValueError(f"HA_DiscoveryConfig: Invalid name: '{j_name}'")
+
+        return HA_DiscoveryConfig(j_enabled, j_prefix, j_id, j_name)

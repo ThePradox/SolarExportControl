@@ -32,8 +32,16 @@
         "smoothingSampleSize": 0
     },
     "meta": {
-        "prefix": "meta/",
-        "resetInverterLimitOnInactive": true
+        "prefix": "solarexportcontrol",
+        "resetInverterLimitOnInactive": true,
+
+        "homeAssistantDiscovery": {
+            "enabled": true,
+            "discoveryPrefix": "homeassistant",
+            "id": 1,
+            "name": "SEC"
+
+        }
     },
     "customize": {
         "status": {},

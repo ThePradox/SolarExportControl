@@ -4,7 +4,7 @@ import time
 import core.appconfig as appconfig
 from core.limit import LimitCalculatorResult
 from paho.mqtt import client as mqtt
-from typing import Callable, Any, List
+from typing import Callable, Any, List, Tuple
 
 
 MQTT_TOPIC_META_CMD_ACTIVE = "/cmd/active"
@@ -68,8 +68,11 @@ class MqttHelper:
             logging.debug(f"Received '{type}' message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}' was retained '{msg.retain}' -> {parsed}")
 
     @staticmethod
-    def combine_topic_path(prefix: str, topic: str) -> str:
-        return f'{prefix.removesuffix("/")}/{topic.removeprefix("/")}'
+    def combine_topic_path(*args: str) -> str:
+        buff = []
+        for arg in args:
+           buff.append(arg.strip("/"))
+        return "/".join(buff)
 
     def schedule(self, seconds: int, action: Callable) -> None:
         self.scheduler.schedule(seconds, action)
@@ -285,6 +288,9 @@ class AppMqttHelper(MetaControlHelper):
         self.__on_power_reading: Callable[[float], None] | None = None
         self.__on_inverter_status: Callable[[bool], None] | None = None
 
+        if config.meta.discovery is not None and config.meta.discovery.enabled:
+            self.__discovery_reading = self.__create_discovery_reading()
+
     def on_power_reading(self, callback: Callable[[float], None] | None, parser: Callable[[bytes], float | None]) -> None:
         self.__on_power_reading = callback
         self.__parser_power_reading = parser
@@ -354,6 +360,29 @@ class AppMqttHelper(MetaControlHelper):
     def unsubscribes_inverter_status(self) -> None:
         if self.config.mqtt.topics.status:
             self.unsubscribe(self.config.mqtt.topics.status)
+
+    def __create_discovery_reading(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        if config is None or not config.enabled:
+            raise ValueError("Discovery is not activated")
+
+        obj_id = f"reading"
+        node_id = f"sec_{config.id}"
+        component = "sensor"
+        uniq_id = f"{config.id}_tele_reading"     
+        name = f"{config.name} Power" 
+        device = self.__create_discovery_device()
+        topic = self.combine_topic_path(config.prefix, component, node_id, obj_id, "config")
+        payload = f'{{"name":"{name}", "stat_t":"{self.topic_tele_reading}", "avty_t":"{self.topic_tele_online}", "pl_avail":"{MQTT_PL_META_TELE_ONLINE_TRUE}", "pl_not_avail":"{MQTT_PL_META_TELE_ONLINE_FALSE}", "unit_of_meas":"W", "uniq_id":"{uniq_id}", "dev_cla":"power", "stat_cla":"measurement", "ic":"mdi:power-plug", "dev":{device}}}'
+        return (topic, payload)
+
+    def __create_discovery_device(self) -> str:
+        config = self.config.meta.discovery
+        if config is None or not config.enabled:
+            raise ValueError("Discovery is not activated")
+
+        return f'{{"name":"{config.name}", "ids":"{config.id}", "mf":"Solar Export Control"}}'
+
 
 
 class ActionScheduler:
