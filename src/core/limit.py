@@ -66,7 +66,7 @@ class LimitCalculator:
             self.last_limit_value = self.__get_calibration()
             self.last_command_has = True
             result.is_calibration = True
-            logging.info(f"Calibration value is: {self.last_limit_value}")
+            logging.debug(f"Calibration value is: {self.last_limit_value}")
 
             if self.config.command.type == appconfig.InverterCommandType.RELATIVE:
                 result.limit = self.__convert_to_relative_command(self.last_limit_value)
@@ -97,7 +97,7 @@ class LimitCalculator:
                 logging.debug("Limit is not over min diff")
                 result.is_not_over_min_diff = True
                 return result
-    
+
         result.limit = limit
         command: float
 
@@ -191,5 +191,5 @@ class LimitCalculator:
         seg.append(f"Thr: {int(result.is_throttled)}")
         seg.append(f"Min: {int(result.is_not_over_min_diff)}")
         seg.append(f"Ret: {int(result.is_retransmit)}")
-       
+
         logging.debug(" | ".join(seg))
