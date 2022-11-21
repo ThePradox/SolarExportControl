@@ -143,7 +143,7 @@ class MqttTopicConfig:
     def __init__(self, read_power: str, write_limit: str | None, status: str | None) -> None:
         self.read_power: str = read_power
         self.write_limit: str | None = write_limit
-        self.status: str | None = status
+        self.inverter_status: str | None = status
 
     @staticmethod
     def from_json(json: dict) -> MqttTopicConfig:
@@ -155,7 +155,7 @@ class MqttTopicConfig:
         if type(j_write_limit) is not str or not j_write_limit:
             j_write_limit = None
 
-        j_status = json.get("status")
+        j_status = json.get("inverterStatus")
         if type(j_status) is not str or not j_status:
             j_status = None
 

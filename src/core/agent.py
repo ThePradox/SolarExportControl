@@ -11,42 +11,43 @@ class ExportControlAgent:
         self.config: appconfig.AppConfig = config
         self.limitcalc: LimitCalculator = LimitCalculator(config)
         self.mqtt_log: bool = mqtt_log
-        self.__setup_mode: bool = True
-        self.__meta_active: bool = True
-        self.__inverter_status: bool = False
 
         self.helper: AppMqttHelper = AppMqttHelper(self.config, mqttLogging=self.mqtt_log)
         self.helper.on_connect(self.__on_connect_success, self.__on_connect_error)
         self.helper.on_power_reading(self.__on_power_reading, self.__parser_power_reading)
         self.helper.on_inverter_status(self.__on_inverter_status, self.__parser_inverter_status)
-        self.helper.on_cmd_active(self.__on_meta_cmd_active)
+        self.helper.on_meta_cmd_active(self.__on_meta_cmd_active)
         self.helper.setup_will()
+
+        self.__setup_mode: bool = True
+        self.__meta_status: bool = True
+        self.__inverter_status: bool = self.__get_inverter_status_init()
+        self.__published_discovery = False
 
 # region Events
 
     def __on_connect_success(self) -> None:
-        self.limitcalc.reset()
-        self.helper.subscribe_cmd_active()
+        self.helper.subscribe_meta_cmd_active()
+        self.helper.subscribe_inverter_status()
         self.helper.publish_meta_online(True)
         self.__start_setup_mode()
 
     def __on_connect_error(self, rc: Any) -> None:
         self.__inverter_status = False
-        self.__meta_active = False
+        self.__meta_status = False
         self.__setup_mode = False
 
     def __on_inverter_status(self, value: bool) -> None:
-        # Possible buffered message in pipeline after unsubscribe
-        if not self.__meta_active or self.__setup_mode:
-            logging.warning("Inverter status: Received unwanted message!")
-            return
+        self.__set_status(inverter_status=value)
 
-        self.__set_inverter_status(value)
+    def __on_meta_cmd_active(self, active: bool) -> None:
+        self.__set_status(meta_status=active)
 
     def __on_power_reading(self, value: float) -> None:
         # Possible buffered message in pipeline after unsubscribe
-        if not self.__inverter_status or not self.__meta_active or self.__setup_mode:
-            logging.warning("Inverter status: Received unwanted message!")
+        if not self.__inverter_status or not self.__meta_status or self.__setup_mode:
+            #TODO: Remove
+            logging.warning("Power reading: Received unwanted message!")
             return
 
         result = self.limitcalc.add_reading(value)
@@ -54,9 +55,6 @@ class ExportControlAgent:
 
         if result.command is not None:
             self.__send_command(result.command)
-
-    def __on_meta_cmd_active(self, active: bool) -> None:
-        self.__set_meta_active(active)
 
 # endregion
 
@@ -69,57 +67,53 @@ class ExportControlAgent:
     def __start_setup_mode(self) -> None:
         self.__setup_mode = True
         setup_mode_duration = 2
-        logging.debug(f"Setup mode start: Waiting {setup_mode_duration}s for potential retained cmd messages to arrive...")
+        logging.debug(f"Setup mode start: Waiting {setup_mode_duration}s for potential retained messages to arrive...")
         self.helper.schedule(2, self.__stop_setup_mode)
 
     def __stop_setup_mode(self) -> None:
         self.__setup_mode = False
         logging.debug("Setup mode end.")
-        self.__set_meta_active(None)
+        self.__set_status(meta_status=None, inverter_status=None, force=True)
 
-    def __set_meta_active(self, active: bool | None) -> None:
-        active_applied = active is None
-        if self.__meta_active == active:
+    def __set_status(self, meta_status: bool | None = None, inverter_status: bool | None = None, force: bool = False) -> None:
+        meta_status_retr = meta_status is None
+        inverter_status_retr = inverter_status is None
+
+        if meta_status_retr:
+            meta_status = self.__meta_status
+
+        if inverter_status_retr:
+            inverter_status = self.__inverter_status
+
+        if not force and self.__inverter_status == inverter_status and self.__meta_status == meta_status:
             return
 
-        if active is None:
-            active = self.__meta_active
-
-        self.__meta_active = active
+        self.__meta_status = meta_status
+        self.__inverter_status = inverter_status
 
         if self.__setup_mode:
             return
 
+        self.helper.publish_meta_status(meta_status)
+        self.helper.publish_meta_inverter_status(inverter_status)
+        active = meta_status and inverter_status
+
         if active:
             logging.info("Application status: Active")
-            self.helper.publish_meta_active(True)
-            self.__set_inverter_status()
+            self.limitcalc.reset()
+            self.helper.subscribe_power_reading()
+            self.__ha_discovery()
         else:
             logging.info("Application status: Inactive")
-            if not active_applied and self.config.meta.reset_inverter_on_inactive:
+            self.helper.unsubscribe_power_reading()
+            if not meta_status and not meta_status_retr and self.config.meta.reset_inverter_on_inactive:
                 self.__send_command(self.limitcalc.get_command_max())
 
-            self.helper.unsubscribe_all_but_cmd_active()
-            self.helper.publish_meta_active(False)
-
-    def __set_inverter_status(self, status: bool | None = None) -> None:
-        if self.__inverter_status == status:
-            return
-
-        if status is None:
-            status = self.__get_inverter_status_init()
-            logging.info(f"Inverter status: {'Active' if status else 'Inactive'}")
-
-        if status:
-            self.helper.subscribe_power_reading()
-        else:
-            self.helper.unsubscribe_power_reading()
-
-        self.helper.publish_meta_inverter_status(status)
-        self.__inverter_status = status
-
     def __get_inverter_status_init(self) -> bool:
-        status = False
+        if not self.helper.has_inverter_status:
+            return True
+
+        status = True
 
         try:
             status = customize.get_status_init(self.config.customize.status)
@@ -145,6 +139,13 @@ class ExportControlAgent:
             customize.command_to_generic(command, self.config.command.type, self.config.command.min_power, self.config.command.max_power, self.config.customize.command)
         except Exception as ex:
             logging.warning(f"customize.command_to_generic failed: {ex}")
+
+    def __ha_discovery(self) -> None:
+        if self.__published_discovery or not self.helper.has_discovery:
+            return
+
+        self.helper.publish_meta_ha_discovery()
+        self.__published_discovery = True
 
     def run(self) -> None:
         self.helper.connect()

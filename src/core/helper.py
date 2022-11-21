@@ -71,7 +71,7 @@ class MqttHelper:
     def combine_topic_path(*args: str) -> str:
         buff = []
         for arg in args:
-           buff.append(arg.strip("/"))
+            buff.append(arg.strip("/"))
         return "/".join(buff)
 
     def schedule(self, seconds: int, action: Callable) -> None:
@@ -165,6 +165,7 @@ class MqttHelper:
 
 # region Event proxys
 
+
     def __proxy_on_connect(self, client: mqtt.Client, ud, flags, rc, props=None) -> None:
         logging.info(f"Connection response -> {rc} - \"{mqtt.connack_string(rc)}\", flags: {flags}")
         self.reset()
@@ -205,13 +206,19 @@ class MetaControlHelper(MqttHelper):
         self.topic_tele_overshoot = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_OVERSHOOT)
         self.topic_tele_inverter_status = MqttHelper.combine_topic_path(config.meta.prefix, MQTT_TOPIC_META_TELE_INVERTER_STATUS)
         self.__on_cmd_active: Callable[[bool], None] | None = None
+        self.has_discovery = False
+        self.has_inverter_status = bool(config.mqtt.topics.inverter_status)
+
+        if config.meta.discovery is not None and config.meta.discovery.enabled:
+            self.has_discovery = True
+            self.__discovery_reading = self.__create_discovery_reading()
 
     def setup_will(self) -> None:
         self.client.will_set(self.topic_tele_online, MQTT_PL_META_TELE_ONLINE_FALSE, 0, True)
 
-    def publish_meta_active(self, active: bool) -> None:
+    def publish_meta_status(self, active: bool) -> None:
         payload = MQTT_PL_META_TELE_ACTIVE_TRUE if active else MQTT_PL_META_TELE_ACTIVE_FALSE
-        self.publish(self.topic_tele_active, payload, 0, True)
+        self.publish(self.topic_tele_active, payload, 0, False)
 
     def publish_meta_online(self, online: bool) -> None:
         payload = MQTT_PL_META_TELE_ONLINE_TRUE if online else MQTT_PL_META_TELE_ONLINE_FALSE
@@ -232,6 +239,10 @@ class MetaControlHelper(MqttHelper):
     def publish_meta_sample(self, sample: float) -> None:
         self.publish(self.topic_tele_sample, f"{sample:.2f}", 0, False)
 
+    def publish_meta_inverter_status(self, status: bool) -> None:
+        payload = MQTT_PL_META_TELE_INVERTER_STATUS_TRUE if status else MQTT_PL_META_TELE_INVERTER_STATUS_FALSE
+        self.publish(self.topic_tele_inverter_status, payload, 0, False)
+
     def publish_meta_teles(self, reading: float, sample: float, overshoot: float | None, limit: float | None) -> None:
         self.publish_meta_reading(reading)
         self.publish_meta_sample(sample)
@@ -246,21 +257,23 @@ class MetaControlHelper(MqttHelper):
 
         self.publish_meta_limit(limit)
 
-    def publish_meta_inverter_status(self, status: bool) -> None:
-        payload = MQTT_PL_META_TELE_INVERTER_STATUS_TRUE if status else MQTT_PL_META_TELE_INVERTER_STATUS_FALSE
-        self.publish(self.topic_tele_inverter_status, payload, 0, True)
+    def publish_meta_ha_discovery(self) -> None:
+        if not self.has_discovery:
+            return
 
-    def subscribe_cmd_active(self) -> None:
+        self.publish(self.__discovery_reading[0], self.__discovery_reading[1], 0, True)
+
+    def subscribe_meta_cmd_active(self) -> None:
         self.subscribe(self.topic_cmd_active)
 
-    def on_cmd_active(self, callback: Callable[[bool], None] | None) -> None:
+    def on_meta_cmd_active(self, callback: Callable[[bool], None] | None) -> None:
         self.__on_cmd_active = callback
         if callback is None:
             self.client.message_callback_remove(self.topic_cmd_active)
         else:
-            self.client.message_callback_add(self.topic_cmd_active, self.__proxy_on_cmd_active)
+            self.client.message_callback_add(self.topic_cmd_active, self.__proxy_on_meta_cmd_active)
 
-    def __proxy_on_cmd_active(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None) -> None:
+    def __proxy_on_meta_cmd_active(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None) -> None:
         if self.__on_cmd_active is None:
             return
 
@@ -281,15 +294,34 @@ class MetaControlHelper(MqttHelper):
         osubs = [sub for sub in self.subs if sub != self.topic_cmd_active]
         self.unsubscribe_many(osubs)
 
+    def __create_discovery_reading(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        if config is None or not config.enabled:
+            raise ValueError("Discovery is not activated")
+
+        obj_id = f"reading"
+        node_id = f"sec_{config.id}"
+        component = "sensor"
+        uniq_id = f"sec_{config.id}_tele_reading"
+        name = f"{config.name} Power"
+        device = self.__create_discovery_device()
+        topic = self.combine_topic_path(config.prefix, component, node_id, obj_id, "config")
+        payload = f'{{"name":"{name}", "stat_t":"{self.topic_tele_reading}", "avty_t":"{self.topic_tele_online}", "pl_avail":"{MQTT_PL_META_TELE_ONLINE_TRUE}", "pl_not_avail":"{MQTT_PL_META_TELE_ONLINE_FALSE}", "unit_of_meas":"W", "uniq_id":"{uniq_id}", "dev_cla":"power", "stat_cla":"measurement", "ic":"mdi:power-plug", "dev":{device}}}'
+        return (topic, payload)
+
+    def __create_discovery_device(self) -> str:
+        config = self.config.meta.discovery
+        if config is None or not config.enabled:
+            raise ValueError("Discovery is not activated")
+
+        return f'{{"name":"{config.name}", "ids":"{config.id}", "mf":"Solar Export Control"}}'
+
 
 class AppMqttHelper(MetaControlHelper):
     def __init__(self, config: appconfig.AppConfig, loglvl=logging.root.level, mqttLogging: bool = False) -> None:
         super().__init__(config, loglvl, mqttLogging)
         self.__on_power_reading: Callable[[float], None] | None = None
         self.__on_inverter_status: Callable[[bool], None] | None = None
-
-        if config.meta.discovery is not None and config.meta.discovery.enabled:
-            self.__discovery_reading = self.__create_discovery_reading()
 
     def on_power_reading(self, callback: Callable[[float], None] | None, parser: Callable[[bytes], float | None]) -> None:
         self.__on_power_reading = callback
@@ -301,16 +333,16 @@ class AppMqttHelper(MetaControlHelper):
             self.client.message_callback_add(self.config.mqtt.topics.read_power, self.__proxy_on_power_reading)
 
     def on_inverter_status(self, callback: Callable[[bool], None] | None, parser: Callable[[bytes], bool | None]) -> None:
-        if not self.config.mqtt.topics.status:
+        if not self.config.mqtt.topics.inverter_status:
             return
 
         self.__on_inverter_status = callback
         self.__parser_inverter_status = parser
 
         if callback is None:
-            self.client.message_callback_remove(self.config.mqtt.topics.status)
+            self.client.message_callback_remove(self.config.mqtt.topics.inverter_status)
         else:
-            self.client.message_callback_add(self.config.mqtt.topics.status, self.__proxy_on_inverter_status)
+            self.client.message_callback_add(self.config.mqtt.topics.inverter_status, self.__proxy_on_inverter_status)
 
     def __proxy_on_power_reading(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None) -> None:
         if self.__on_power_reading is None:
@@ -328,7 +360,7 @@ class AppMqttHelper(MetaControlHelper):
             self.__on_power_reading(value)
 
     def __proxy_on_inverter_status(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None) -> None:
-        if self.__on_inverter_status is None or not self.config.mqtt.topics.status:
+        if self.__on_inverter_status is None or not self.config.mqtt.topics.inverter_status:
             return
 
         try:
@@ -354,35 +386,12 @@ class AppMqttHelper(MetaControlHelper):
         self.unsubscribe(self.config.mqtt.topics.read_power)
 
     def subscribe_inverter_status(self) -> None:
-        if self.config.mqtt.topics.status:
-            self.subscribe(self.config.mqtt.topics.status, 0)
+        if self.has_inverter_status and self.config.mqtt.topics.inverter_status:
+            self.subscribe(self.config.mqtt.topics.inverter_status, 0)
 
     def unsubscribes_inverter_status(self) -> None:
-        if self.config.mqtt.topics.status:
-            self.unsubscribe(self.config.mqtt.topics.status)
-
-    def __create_discovery_reading(self) -> Tuple[str, str]:
-        config = self.config.meta.discovery
-        if config is None or not config.enabled:
-            raise ValueError("Discovery is not activated")
-
-        obj_id = f"reading"
-        node_id = f"sec_{config.id}"
-        component = "sensor"
-        uniq_id = f"{config.id}_tele_reading"     
-        name = f"{config.name} Power" 
-        device = self.__create_discovery_device()
-        topic = self.combine_topic_path(config.prefix, component, node_id, obj_id, "config")
-        payload = f'{{"name":"{name}", "stat_t":"{self.topic_tele_reading}", "avty_t":"{self.topic_tele_online}", "pl_avail":"{MQTT_PL_META_TELE_ONLINE_TRUE}", "pl_not_avail":"{MQTT_PL_META_TELE_ONLINE_FALSE}", "unit_of_meas":"W", "uniq_id":"{uniq_id}", "dev_cla":"power", "stat_cla":"measurement", "ic":"mdi:power-plug", "dev":{device}}}'
-        return (topic, payload)
-
-    def __create_discovery_device(self) -> str:
-        config = self.config.meta.discovery
-        if config is None or not config.enabled:
-            raise ValueError("Discovery is not activated")
-
-        return f'{{"name":"{config.name}", "ids":"{config.id}", "mf":"Solar Export Control"}}'
-
+        if self.has_inverter_status and self.config.mqtt.topics.inverter_status:
+            self.unsubscribe(self.config.mqtt.topics.inverter_status)
 
 
 class ActionScheduler:
