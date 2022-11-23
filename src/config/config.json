@@ -3,18 +3,18 @@
         "host": "",
         "port": null,
         "keepalive": null,
-        "protocol": null,
+        "protocol": 5,
         "retain": null,
         "clientId": null,
         "cleanSession": true,
         "topics": {
             "readPower": "",
             "writeLimit": null,
-            "status": null
+            "inverterStatus": null
         },
         "auth": {
-            "username": "",
-            "password": ""
+            "username": null,
+            "password": null
         }
     },
     "command": {
@@ -34,6 +34,14 @@
     "meta": {
         "prefix": "solarexportcontrol",
         "resetInverterLimitOnInactive": true,
+
+        "telemetry": {
+            "power": true,
+            "sample": true,
+            "overshoot": true,
+            "limit": true,
+            "command": true
+        },
 
         "homeAssistantDiscovery": {
             "enabled": true,

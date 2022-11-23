@@ -301,9 +301,10 @@ class CustomizeConfig:
 
 
 class MetaControlConfig:
-    def __init__(self, prefix: str, reset_inverter_on_inactive: bool, ha_discovery: HA_DiscoveryConfig | None) -> None:
+    def __init__(self, prefix: str, reset_inverter_on_inactive: bool, telemetry: MetaTelemetryConfig, ha_discovery: HA_DiscoveryConfig | None) -> None:
         self.prefix = prefix
         self.reset_inverter_on_inactive = reset_inverter_on_inactive
+        self.telemetry = telemetry
         self.discovery = ha_discovery
 
     @staticmethod
@@ -318,12 +319,50 @@ class MetaControlConfig:
         elif j_prefix.startswith("/"):
             raise ValueError(f"MetaControlConfig: prefix cannot start with slash: '{j_prefix}'")
 
+        j_telemetry = json.get("telemetry")
+        if type(j_telemetry) is not dict:
+            raise ValueError(f"MetaControlConfig: Invalid telemetry obj: '{j_telemetry}'")
+        o_telemetry = MetaTelemetryConfig.from_json(j_telemetry)
+
         j_discovery = json.get("homeAssistantDiscovery")
         o_discovery: HA_DiscoveryConfig | None = None
         if j_discovery is not None and type(j_discovery) is dict:
             o_discovery = HA_DiscoveryConfig.from_json(j_discovery)
 
-        return MetaControlConfig(j_prefix, j_reset, o_discovery)
+        return MetaControlConfig(j_prefix, j_reset, o_telemetry, o_discovery)
+
+
+class MetaTelemetryConfig:
+    def __init__(self, power: bool, sample: bool, overshoot: bool, limit: bool, command: bool) -> None:
+        self.power = power
+        self.sample = sample
+        self.overshoot = overshoot
+        self.limit = limit
+        self.command = command
+
+    @staticmethod
+    def from_json(json: dict) -> MetaTelemetryConfig:
+        j_power = json.get("power")
+        if type(j_power) is not bool:
+            raise ValueError(f"MetaTelemetryConfig: Invalid power: '{j_power}'")
+
+        j_sample = json.get("sample")
+        if type(j_sample) is not bool:
+            raise ValueError(f"MetaTelemetryConfig: Invalid sample: '{j_sample}'")
+
+        j_overshoot = json.get("overshoot")
+        if type(j_overshoot) is not bool:
+            raise ValueError(f"MetaTelemetryConfig: Invalid overshoot: '{j_overshoot}'")
+
+        j_limit = json.get("limit")
+        if type(j_limit) is not bool:
+            raise ValueError(f"MetaTelemetryConfig: Invalid limit: '{j_limit}'")
+
+        j_command = json.get("command")
+        if type(j_command) is not bool:
+            raise ValueError(f"MetaTelemetryConfig: Invalid command: '{j_command}'")
+
+        return MetaTelemetryConfig(power=j_power, sample=j_sample, overshoot=j_overshoot, limit=j_limit, command=j_command)
 
 
 class HA_DiscoveryConfig:

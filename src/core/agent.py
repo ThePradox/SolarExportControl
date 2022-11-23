@@ -16,7 +16,7 @@ class ExportControlAgent:
         self.helper.on_connect(self.__on_connect_success, self.__on_connect_error)
         self.helper.on_power_reading(self.__on_power_reading, self.__parser_power_reading)
         self.helper.on_inverter_status(self.__on_inverter_status, self.__parser_inverter_status)
-        self.helper.on_meta_cmd_active(self.__on_meta_cmd_active)
+        self.helper.on_meta_cmd_enabled(self.__on_meta_cmd_active)
         self.helper.setup_will()
 
         self.__setup_mode: bool = True
@@ -27,9 +27,9 @@ class ExportControlAgent:
 # region Events
 
     def __on_connect_success(self) -> None:
-        self.helper.subscribe_meta_cmd_active()
+        self.helper.subscribe_meta_cmd_enabled()
         self.helper.subscribe_inverter_status()
-        self.helper.publish_meta_online(True)
+        self.helper.publish_meta_status_online(True)
         self.__start_setup_mode()
 
     def __on_connect_error(self, rc: Any) -> None:
@@ -94,10 +94,11 @@ class ExportControlAgent:
         if self.__setup_mode:
             return
 
-        self.helper.publish_meta_status(meta_status)
-        self.helper.publish_meta_inverter_status(inverter_status)
         active = meta_status and inverter_status
-
+        self.helper.publish_meta_status_enabled(meta_status)
+        self.helper.publish_meta_status_inverter(inverter_status)
+        self.helper.publish_meta_status_active(active)
+        
         if active:
             logging.info("Application status: Active")
             self.limitcalc.reset()
@@ -133,7 +134,7 @@ class ExportControlAgent:
             return
 
         self.helper.publish_command(cmdpayload)
-        self.helper.publish_meta_command(command)
+        self.helper.publish_meta_tele_command(command)
 
         try:
             customize.command_to_generic(command, self.config.command.type, self.config.command.min_power, self.config.command.max_power, self.config.customize.command)
