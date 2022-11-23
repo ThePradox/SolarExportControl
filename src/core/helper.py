@@ -24,11 +24,12 @@ MQTT_PL_FALSE = "0"
 
 
 class MqttHelper:
-    def __init__(self, config: appconfig.AppConfig, loglvl=logging.root.level, mqttLogging: bool = False) -> None:
+    def __init__(self, config: appconfig.AppConfig, loglvl=logging.root.level, mqttDiag: bool = False) -> None:
         self.config = config
         self.debug = loglvl == logging.DEBUG
         self.scheduler = ActionScheduler()
         self.subs: List[str] = []
+        self.mqttDiag = mqttDiag
 
         self.__on_connect_success = None
         self.__on_connect_error = None
@@ -48,7 +49,7 @@ class MqttHelper:
         if config.mqtt.auth:
             client.username_pw_set(config.mqtt.auth.username, config.mqtt.auth.password)
 
-        if mqttLogging:
+        if mqttDiag:
             client.enable_logger(logging.root)
 
         client.on_connect = self.__proxy_on_connect
@@ -59,17 +60,15 @@ class MqttHelper:
         self.client = client
 
     @staticmethod
-    def received_message(msg: mqtt.MQTTMessage, type: str, parsed) -> None:
-        # Skip str formating overhead on not debug (payload can be big)
-        if logging.root.level == logging.DEBUG:
-            logging.debug(f"Received '{type}' message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}' was retained '{msg.retain}' -> {parsed}")
-
-    @staticmethod
     def combine_topic_path(*args: str) -> str:
         buff = []
         for arg in args:
             buff.append(arg.strip("/"))
         return "/".join(buff)
+
+    def received_message(self, msg: mqtt.MQTTMessage, type: str, parsed) -> None:
+        if self.mqttDiag:
+            logging.debug(f"Received '{type}' message: '{msg.payload}' on topic: '{msg.topic}' with QoS '{msg.qos}' was retained '{msg.retain}' -> {parsed}")
 
     def schedule(self, seconds: int, action: Callable) -> None:
         self.scheduler.schedule(seconds, action)
@@ -206,12 +205,14 @@ class MetaControlHelper(MqttHelper):
         self.has_discovery = False
         self.has_inverter_status = bool(config.mqtt.topics.inverter_status)
 
-        if config.meta.discovery is not None and config.meta.discovery.enabled:
+        if config.meta.discovery.enabled:
             self.has_discovery = True
+            self.__discovery_device = self.__create_discovery_device()
             self.__discovery_reading = self.__create_discovery_reading()
+            self.__discovery_sample = self.__create_disovery_sample()
 
     def setup_will(self) -> None:
-        self.client.will_set(self.topic_meta_core_online, MQTT_PL_TRUE, 0, True)
+        self.client.will_set(self.topic_meta_core_online, MQTT_PL_FALSE, 0, True)
 
     def publish_meta_status_enabled(self, enabled: bool) -> None:
         payload = MQTT_PL_TRUE if enabled else MQTT_PL_FALSE
@@ -267,8 +268,15 @@ class MetaControlHelper(MqttHelper):
         if not self.has_discovery:
             return
 
-        if self.config.meta.telemetry:
+        if self.config.meta.telemetry.power:
             self.publish(self.__discovery_reading[0], self.__discovery_reading[1], 0, True)
+        else:
+            self.publish(self.__discovery_reading[0], "", 0, True)
+
+        if self.config.meta.telemetry.sample:
+           self.publish(self.__discovery_sample[0], self.__discovery_sample[1], 0, True)
+        else:
+            self.publish(self.__discovery_sample[0], "", 0, True)
 
     def subscribe_meta_cmd_enabled(self) -> None:
         self.subscribe(self.topic_meta_cmd_enabled)
@@ -292,36 +300,38 @@ class MetaControlHelper(MqttHelper):
         elif pl == MQTT_PL_FALSE:
             parsed = False
 
-        MqttHelper.received_message(msg, "meta-enabled", parsed)
+        self.received_message(msg, "meta-enabled", parsed)
 
         if parsed is not None:
             self.__on_cmd_enabled(parsed)
 
     def __create_discovery_reading(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
-        if config is None or not config.enabled:
-            raise ValueError("Discovery is not activated")
-
-        obj_id = f"reading"
-        node_id = f"sec_{config.id}"
-        component = "sensor"
         uniq_id = f"sec_{config.id}_tele_reading"
         name = f"{config.name} Power"
-        topic = self.combine_topic_path(config.prefix, component, node_id, obj_id, "config")
+        topic = self.__create_discovery_topic("sensor", f"sec_{config.id}", "reading")
         payload = self.__create_discovery_payload_tele_sensor(name, self.topic_meta_tele_reading, "W", uniq_id, "power", "measurement", "mdi:power-plug")
+        return (topic, payload)
 
+    def __create_disovery_sample(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        uniq_id = f"sec_{config.id}_tele_sample"
+        name = f"{config.name} Sample"
+        topic = self.__create_discovery_topic("sensor", f"sec_{config.id}", "sample")
+        payload = self.__create_discovery_payload_tele_sensor(name, self.topic_meta_tele_sample, "W", uniq_id, "power", "measurement", "mdi:chart-bell-curve-cumulative")
         return (topic, payload)
 
     def __create_discovery_device(self) -> str:
         config = self.config.meta.discovery
-        if config is None or not config.enabled:
-            raise ValueError("Discovery is not activated")
-
         return f'{{"name":"{config.name}", "ids":"{config.id}", "mf":"Solar Export Control"}}'
 
     def __create_discovery_payload_tele_sensor(self, name: str, state_topic: str, unit: str, unique_id: str, dev_class: str, state_class, icon: str) -> str:
-        device = self.__create_discovery_device()
+        device = self.__discovery_device
         return f'{{"name": "{name}","state_topic": "{state_topic}","unit_of_measurement": "{unit}","unique_id": "{unique_id}","device_class": "{dev_class}","state_class": "{state_class}","icon": "{icon}","device": {device},"availability_mode": "all","availability": [{{"topic": "{self.topic_meta_core_online}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}},{{"topic": "{self.topic_meta_core_active}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}}]}}'
+
+    def __create_discovery_topic(self, component: str, node_id: str, obj_id: str) -> str:
+        config = self.config.meta.discovery
+        return self.combine_topic_path(config.prefix, component, node_id, obj_id, "config")
 
 
 class AppMqttHelper(MetaControlHelper):

@@ -301,7 +301,7 @@ class CustomizeConfig:
 
 
 class MetaControlConfig:
-    def __init__(self, prefix: str, reset_inverter_on_inactive: bool, telemetry: MetaTelemetryConfig, ha_discovery: HA_DiscoveryConfig | None) -> None:
+    def __init__(self, prefix: str, reset_inverter_on_inactive: bool, telemetry: MetaTelemetryConfig, ha_discovery: HA_DiscoveryConfig) -> None:
         self.prefix = prefix
         self.reset_inverter_on_inactive = reset_inverter_on_inactive
         self.telemetry = telemetry
@@ -321,13 +321,14 @@ class MetaControlConfig:
 
         j_telemetry = json.get("telemetry")
         if type(j_telemetry) is not dict:
-            raise ValueError(f"MetaControlConfig: Invalid telemetry obj: '{j_telemetry}'")
+            raise ValueError(f"MetaControlConfig: Invalid telemetry: '{j_telemetry}'")
         o_telemetry = MetaTelemetryConfig.from_json(j_telemetry)
 
-        j_discovery = json.get("homeAssistantDiscovery")
-        o_discovery: HA_DiscoveryConfig | None = None
-        if j_discovery is not None and type(j_discovery) is dict:
-            o_discovery = HA_DiscoveryConfig.from_json(j_discovery)
+        j_discovery = json.get("homeAssistantDiscovery")     
+        if type(j_discovery) is not dict:
+            raise ValueError(f"MetaControlConfig: Invalid homeAssistantDiscovery: '{j_telemetry}'")
+
+        o_discovery = HA_DiscoveryConfig.from_json(j_discovery)
 
         return MetaControlConfig(j_prefix, j_reset, o_telemetry, o_discovery)
 

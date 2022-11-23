@@ -46,8 +46,6 @@ class ExportControlAgent:
     def __on_power_reading(self, value: float) -> None:
         # Possible buffered message in pipeline after unsubscribe
         if not self.__inverter_status or not self.__meta_status or self.__setup_mode:
-            #TODO: Remove
-            logging.warning("Power reading: Received unwanted message!")
             return
 
         result = self.limitcalc.add_reading(value)
@@ -72,7 +70,7 @@ class ExportControlAgent:
 
     def __stop_setup_mode(self) -> None:
         self.__setup_mode = False
-        logging.debug("Setup mode end.")
+        logging.debug("Setup mode end")
         self.__set_status(meta_status=None, inverter_status=None, force=True)
 
     def __set_status(self, meta_status: bool | None = None, inverter_status: bool | None = None, force: bool = False) -> None:
@@ -107,7 +105,7 @@ class ExportControlAgent:
         else:
             logging.info("Application status: Inactive")
             self.helper.unsubscribe_power_reading()
-            if not meta_status and not meta_status_retr and self.config.meta.reset_inverter_on_inactive:
+            if not meta_status and not meta_status_retr and self.config.meta.reset_inverter_on_inactive and self.__inverter_status:
                 self.__send_command(self.limitcalc.get_command_max())
 
     def __get_inverter_status_init(self) -> bool:
