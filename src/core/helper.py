@@ -161,6 +161,7 @@ class MqttHelper:
 
 # region Event proxys
 
+
     def __proxy_on_connect(self, client: mqtt.Client, ud, flags, rc, props=None) -> None:
         logging.info(f"Connection response -> {rc} - \"{mqtt.connack_string(rc)}\", flags: {flags}")
         self.reset()
@@ -210,6 +211,9 @@ class MetaControlHelper(MqttHelper):
             self.__discovery_device = self.__create_discovery_device()
             self.__discovery_reading = self.__create_discovery_reading()
             self.__discovery_sample = self.__create_disovery_sample()
+            self.__discovery_overshoot = self.__create_discovery_overshoot()
+            self.__discovery_limit = self.__create_discovery_limit()
+            self.__discovery_cmd = self.__create_discovery_command()
 
     def setup_will(self) -> None:
         self.client.will_set(self.topic_meta_core_online, MQTT_PL_FALSE, 0, True)
@@ -274,9 +278,24 @@ class MetaControlHelper(MqttHelper):
             self.publish(self.__discovery_reading[0], "", 0, True)
 
         if self.config.meta.telemetry.sample:
-           self.publish(self.__discovery_sample[0], self.__discovery_sample[1], 0, True)
+            self.publish(self.__discovery_sample[0], self.__discovery_sample[1], 0, True)
         else:
             self.publish(self.__discovery_sample[0], "", 0, True)
+
+        if self.config.meta.telemetry.overshoot:
+            self.publish(self.__discovery_overshoot[0], self.__discovery_overshoot[1], 0, True)
+        else:
+            self.publish(self.__discovery_overshoot[0], "", 0, True)
+
+        if self.config.meta.telemetry.limit:
+            self.publish(self.__discovery_limit[0], self.__discovery_limit[1], 0, True)
+        else:
+            self.publish(self.__discovery_limit[0], "", 0, True)
+
+        if self.config.meta.telemetry.command:
+            self.publish(self.__discovery_cmd[0], self.__discovery_cmd[1], 0, True)
+        else:
+            self.publish(self.__discovery_cmd[0], "", 0, True)
 
     def subscribe_meta_cmd_enabled(self) -> None:
         self.subscribe(self.topic_meta_cmd_enabled)
@@ -309,25 +328,55 @@ class MetaControlHelper(MqttHelper):
         config = self.config.meta.discovery
         uniq_id = f"sec_{config.id}_tele_reading"
         name = f"{config.name} Power"
-        topic = self.__create_discovery_topic("sensor", f"sec_{config.id}", "reading")
-        payload = self.__create_discovery_payload_tele_sensor(name, self.topic_meta_tele_reading, "W", uniq_id, "power", "measurement", "mdi:power-plug")
+        node_id = f"sec_{config.id}"
+        topic = self.__create_discovery_topic("sensor", node_id, "reading")
+        payload = self.__create_discovery_payload_tele_sensor(name, uniq_id, self.topic_meta_tele_reading, "W", uniq_id, "power", "measurement", "mdi:power-plug")
         return (topic, payload)
 
     def __create_disovery_sample(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
         uniq_id = f"sec_{config.id}_tele_sample"
         name = f"{config.name} Sample"
-        topic = self.__create_discovery_topic("sensor", f"sec_{config.id}", "sample")
-        payload = self.__create_discovery_payload_tele_sensor(name, self.topic_meta_tele_sample, "W", uniq_id, "power", "measurement", "mdi:chart-bell-curve-cumulative")
+        node_id = f"sec_{config.id}"
+        topic = self.__create_discovery_topic("sensor", node_id, "sample")
+        payload = self.__create_discovery_payload_tele_sensor(name, uniq_id, self.topic_meta_tele_sample, "W", uniq_id, "power", "measurement", "mdi:sine-wave")
+        return (topic, payload)
+
+    def __create_discovery_overshoot(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        uniq_id = f"sec_{config.id}_tele_overshoot"
+        name = f"{config.name} Overshoot"
+        node_id = f"sec_{config.id}"
+        topic = self.__create_discovery_topic("sensor", node_id, "overshoot")
+        payload = self.__create_discovery_payload_tele_sensor(name, uniq_id, self.topic_meta_tele_overshoot, "W", uniq_id, "power", "measurement", "mdi:plus-minus")
+        return (topic, payload)
+
+    def __create_discovery_limit(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        uniq_id = f"sec_{config.id}_tele_limit"
+        name = f"{config.name} Limit"
+        node_id = f"sec_{config.id}"
+        topic = self.__create_discovery_topic("sensor", node_id, "limit")
+        payload = self.__create_discovery_payload_tele_sensor(name, uniq_id, self.topic_meta_tele_limit, "W", uniq_id, "power", "measurement", "mdi:speedometer")
+        return (topic, payload)
+
+    def __create_discovery_command(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        uniq_id = f"sec_{config.id}_tele_command"
+        name = f"{config.name} Command"
+        node_id = f"sec_{config.id}"
+        topic = self.__create_discovery_topic("sensor", node_id, "command")
+        unit = "%" if self.config.command.type == appconfig.InverterCommandType.RELATIVE else "W"
+        payload = self.__create_discovery_payload_tele_sensor(name, uniq_id, self.topic_meta_tele_cmd, unit, uniq_id, "power", "measurement", "mdi:cube-send")
         return (topic, payload)
 
     def __create_discovery_device(self) -> str:
         config = self.config.meta.discovery
-        return f'{{"name":"{config.name}", "ids":"{config.id}", "mf":"Solar Export Control"}}'
+        return f'{{"name":"{config.name}", "ids":"{config.id}","mdl":"Python Script", "mf":"Solar Export Control"}}'
 
-    def __create_discovery_payload_tele_sensor(self, name: str, state_topic: str, unit: str, unique_id: str, dev_class: str, state_class, icon: str) -> str:
+    def __create_discovery_payload_tele_sensor(self, name: str, obj_id: str, state_topic: str, unit: str, unique_id: str, dev_class: str, state_class, icon: str) -> str:
         device = self.__discovery_device
-        return f'{{"name": "{name}","state_topic": "{state_topic}","unit_of_measurement": "{unit}","unique_id": "{unique_id}","device_class": "{dev_class}","state_class": "{state_class}","icon": "{icon}","device": {device},"availability_mode": "all","availability": [{{"topic": "{self.topic_meta_core_online}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}},{{"topic": "{self.topic_meta_core_active}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}}]}}'
+        return f'{{"name": "{name}","object_id":"{obj_id}","state_topic": "{state_topic}","unit_of_measurement": "{unit}","unique_id": "{unique_id}","device_class": "{dev_class}","state_class": "{state_class}","icon": "{icon}","device": {device},"availability_mode": "all","availability": [{{"topic": "{self.topic_meta_core_online}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}},{{"topic": "{self.topic_meta_core_active}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}}]}}'
 
     def __create_discovery_topic(self, component: str, node_id: str, obj_id: str) -> str:
         config = self.config.meta.discovery
