@@ -27,6 +27,7 @@ class ExportControlAgent:
 # region Events
 
     def __on_connect_success(self) -> None:
+        self.__ha_discovery()
         self.helper.subscribe_meta_cmd_enabled()
         self.helper.subscribe_inverter_status()
         self.helper.publish_meta_status_online(True)
@@ -100,8 +101,7 @@ class ExportControlAgent:
         if active:
             logging.info("Application status: Active")
             self.limitcalc.reset()
-            self.helper.subscribe_power_reading()
-            self.__ha_discovery()
+            self.helper.subscribe_power_reading()         
         else:
             logging.info("Application status: Inactive")
             self.helper.unsubscribe_power_reading()
