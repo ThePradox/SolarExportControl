@@ -214,6 +214,9 @@ class MetaControlHelper(MqttHelper):
             self.__discovery_overshoot = self.__create_discovery_overshoot()
             self.__discovery_limit = self.__create_discovery_limit()
             self.__discovery_cmd = self.__create_discovery_command()
+            self.__discovery_status_enabled = self.__create_discovery_status_enabled()
+            self.__discovery_status_inverter = self.__create_discovery_status_inverter()
+            self.__discovery_status_active = self.__create_discovery_status_active()
 
     def setup_will(self) -> None:
         self.client.will_set(self.topic_meta_core_online, MQTT_PL_FALSE, 0, True)
@@ -271,6 +274,10 @@ class MetaControlHelper(MqttHelper):
     def publish_meta_ha_discovery(self) -> None:
         if not self.has_discovery:
             return
+
+        self.publish(self.__discovery_status_enabled[0], self.__discovery_status_enabled[1], 0, True)
+        self.publish(self.__discovery_status_inverter[0], self.__discovery_status_inverter[1], 0, True)
+        self.publish(self.__discovery_status_active[0], self.__discovery_status_active[1], 0, True)
 
         if self.config.meta.telemetry.power:
             self.publish(self.__discovery_reading[0], self.__discovery_reading[1], 0, True)
@@ -370,6 +377,34 @@ class MetaControlHelper(MqttHelper):
         payload = self.__create_discovery_payload_tele_sensor(name, uniq_id, self.topic_meta_tele_cmd, unit, uniq_id, "power", "measurement", "mdi:cube-send")
         return (topic, payload)
 
+    def __create_discovery_status_enabled(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        uniq_id = f"sec_{config.id}_status_enabled"
+        name = f"{config.name} Status Enabled"
+        node_id = f"sec_{config.id}"
+        topic = self.__create_discovery_topic("binary_sensor", node_id, "status_enabled")     
+        payload = self.__create_discovery_payload_tele_sensor_binary(name, uniq_id, self.topic_meta_core_enabled, uniq_id)
+        return (topic, payload)
+
+    def __create_discovery_status_inverter(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        uniq_id = f"sec_{config.id}_status_inverter"
+        name = f"{config.name} Status Inverter"
+        node_id = f"sec_{config.id}"
+        topic = self.__create_discovery_topic("binary_sensor", node_id, "status_inverter")     
+        payload = self.__create_discovery_payload_tele_sensor_binary(name, uniq_id, self.topic_meta_core_inverter_status, uniq_id)
+        return (topic, payload)
+
+    def __create_discovery_status_active(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        uniq_id = f"sec_{config.id}_status_active"
+        name = f"{config.name} Status Active"
+        node_id = f"sec_{config.id}"
+        topic = self.__create_discovery_topic("binary_sensor", node_id, "status_active")     
+        payload = self.__create_discovery_payload_tele_sensor_binary(name, uniq_id, self.topic_meta_core_active, uniq_id)
+        return (topic, payload)
+
+
     def __create_discovery_device(self) -> str:
         config = self.config.meta.discovery
         return f'{{"name":"{config.name}", "ids":"{config.id}","mdl":"Python Script", "mf":"Solar Export Control"}}'
@@ -377,6 +412,10 @@ class MetaControlHelper(MqttHelper):
     def __create_discovery_payload_tele_sensor(self, name: str, obj_id: str, state_topic: str, unit: str, unique_id: str, dev_class: str, state_class, icon: str) -> str:
         device = self.__discovery_device
         return f'{{"name": "{name}","object_id":"{obj_id}","state_topic": "{state_topic}","unit_of_measurement": "{unit}","unique_id": "{unique_id}","device_class": "{dev_class}","state_class": "{state_class}","icon": "{icon}","device": {device},"availability_mode": "all","availability": [{{"topic": "{self.topic_meta_core_online}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}},{{"topic": "{self.topic_meta_core_active}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}}]}}'
+
+    def __create_discovery_payload_tele_sensor_binary(self, name: str, obj_id: str, state_topic: str, unique_id: str) -> str:
+        device = self.__discovery_device
+        return f'{{"name": "{name}","object_id":"{obj_id}","state_topic": "{state_topic}","payload_on": "{MQTT_PL_TRUE}","payload_off": "{MQTT_PL_FALSE}","unique_id": "{unique_id}","device": {device},"availability_mode": "any","availability": [{{"topic": "{self.topic_meta_core_online}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}}]}}'   
 
     def __create_discovery_topic(self, component: str, node_id: str, obj_id: str) -> str:
         config = self.config.meta.discovery
