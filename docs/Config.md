@@ -80,7 +80,7 @@ Setup mqtt broker authentication. **Will only be used If `username` is not empty
     "maxPower": 1200,
     "type": "relative",
     "throttle": 5,
-    "minDiff": 10.0,
+    "hysteresis": 10.0,
     "retransmit": 60
 },
 ...
@@ -97,8 +97,8 @@ Setup how commands will be issued
 | :red_circle:      | `command.maxPower`     | int              | Watt (W)      | the upper power limit the inverter can be set to
 | :red_circle:      | `command.type`         | string: "absolute" or "realtive"|| controls wether the command is absolute in watts (W) or in relative percent of `command.maxPower`
 | :red_circle:      | `command.throttle`     | int              | Seconds (s)   | time that must pass between new limit commands. Use `0` to disable
-| :red_circle:      | `command.minDiff`      | number           | Watt (W)      | minimum difference between two limit commands. Use `0.00` to disable
-| :red_circle:      | `command.retransmit`   | int              | Seconds       | time after which `command.minDiff` is ignored to retransmit the limit command. Useful if commands can get 'lost' on the way to the inverter. Use `0` to disable
+| :red_circle:      | `command.hysteresis`   | number           | Watt (W)      | minimum difference between two limit commands. Use `0.00` to disable
+| :red_circle:      | `command.retransmit`   | int              | Seconds       | time after which `command.hysteresis` is ignored to retransmit the limit command. Useful if commands can get 'lost' on the way to the inverter. Use `0` to disable
 
 <br />
 

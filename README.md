@@ -92,7 +92,7 @@ See [Docs](/docs/Docker.md)
 
 ## Config suggestions
 
-For `config.command.minDiff` I would suggest about 1-3% of your `command.maxPower`
+For `config.command.hysteresis` I would suggest about 1-3% of your `command.maxPower`
 
 If your power reading interval is less than or around 5 seconds:
 
