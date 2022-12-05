@@ -181,13 +181,13 @@ class MqttAuthConfig:
 
 
 class CommandConfig:
-    def __init__(self, target: int, min_power: float, max_power: float, type: InverterCommandType, throttle: int, min_diff: float, retransmit: int) -> None:
+    def __init__(self, target: int, min_power: float, max_power: float, type: InverterCommandType, throttle: int, hysteresis: float, retransmit: int) -> None:
         self.target: int = target
         self.min_power: float = min_power
         self.max_power: float = max_power
         self.type: InverterCommandType = type
         self.throttle: int = throttle
-        self.min_diff: float = min_diff
+        self.hysteresis: float = hysteresis
         self.retransmit: int = retransmit
 
     @staticmethod
@@ -225,12 +225,12 @@ class CommandConfig:
         if type(j_throttle) is not int or j_throttle < 0:
             raise ValueError(f"CommandConfig: Invalid throttle: '{j_throttle}'")
 
-        j_min_diff = json.get("minDiff")
-        if type(j_min_diff) is int:
-            j_min_diff = float(j_min_diff)
+        j_hysteresis = json.get("hysteresis")
+        if type(j_hysteresis) is int:
+            j_hysteresis = float(j_hysteresis)
 
-        if type(j_min_diff) is not float or j_min_diff < 0:
-            raise ValueError(f"CommandConfig: Invalid minDiff: '{j_min_diff}'")
+        if type(j_hysteresis) is not float or j_hysteresis < 0:
+            raise ValueError(f"CommandConfig: Invalid hysteresis: '{j_hysteresis}'")
 
         j_retransmit = json.get("retransmit")
         if type(j_retransmit) is not int or j_retransmit < 0:
@@ -242,7 +242,7 @@ class CommandConfig:
             max_power=j_max_power,
             type=e_type,
             throttle=j_throttle,
-            min_diff=j_min_diff,
+            hysteresis=j_hysteresis,
             retransmit=j_retransmit
         )
 

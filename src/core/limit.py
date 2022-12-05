@@ -16,7 +16,7 @@ from datetime import datetime
 
 class LimitCalculatorResult:
     def __init__(self, reading: float, sample: float, overshoot: float, limit: float, command: float | None,
-                 is_calibration: bool, is_throttled: bool, is_not_over_min_diff: bool, is_retransmit: bool, elapsed: float) -> None:
+                 is_calibration: bool, is_throttled: bool, is_hysteresis_suppressed: bool, is_retransmit: bool, elapsed: float) -> None:
         self.reading: float = reading
         self.sample: float = sample
         self.overshoot: float = overshoot
@@ -24,7 +24,7 @@ class LimitCalculatorResult:
         self.command: float | None = command
         self.is_calibration: bool = is_calibration
         self.is_throttled: bool = is_throttled
-        self.is_not_over_min_diff: bool = is_not_over_min_diff
+        self.is_hysteresis_suppressed: bool = is_hysteresis_suppressed
         self.is_retransmit: bool = is_retransmit
         self.elapsed: float = elapsed
 
@@ -62,7 +62,7 @@ class LimitCalculator:
     def __add_reading(self, reading: float) -> LimitCalculatorResult:
         is_calibration = False
         is_throttled = False
-        is_not_over_min_diff = False
+        is_hysteresis_suppressed = False
         is_retransmit = False
 
         sample = self.__sampleReading(reading)
@@ -85,17 +85,17 @@ class LimitCalculator:
             if elapsed < self.config.command.throttle:
                 is_throttled = True
 
-            # Ignore mindiff when retransmit > elapsed
+            # Ignore hysteresis when retransmit > elapsed
             elif self.config.command.retransmit > 0 and elapsed >= self.config.command.retransmit:
                 is_retransmit = True
 
-            # Check for mindiff
-            elif not self.__limit_is_min_diff(limit):
-                is_not_over_min_diff = True
+            # Check for hysteresis
+            elif not self.__hysteresis_threshold_breached(limit):
+                is_hysteresis_suppressed = True
 
         command: float | None = None
 
-        if not (is_throttled or is_not_over_min_diff):
+        if not (is_throttled or is_hysteresis_suppressed):
             command = self.__convert_to_command(limit)
             self.last_command_time = datetime.now()
             self.last_limit_value = limit
@@ -107,7 +107,7 @@ class LimitCalculator:
                                      command=command,
                                      is_calibration=is_calibration,
                                      is_throttled=is_throttled,
-                                     is_not_over_min_diff=is_not_over_min_diff,
+                                     is_hysteresis_suppressed=is_hysteresis_suppressed,
                                      is_retransmit=is_retransmit,
                                      elapsed=elapsed)
 
@@ -148,10 +148,10 @@ class LimitCalculator:
     def __convert_overshot_to_limit(self, overshoot: float) -> float:
         return self.__cap_limit(self.last_limit_value + overshoot)
 
-    def __limit_is_min_diff(self, limit: float) -> bool:
-        if self.config.command.min_diff == 0:
+    def __hysteresis_threshold_breached(self, limit: float) -> bool:
+        if self.config.command.hysteresis == 0:
             return True
-        return abs(self.last_limit_value - limit) >= self.config.command.min_diff
+        return abs(self.last_limit_value - limit) >= self.config.command.hysteresis
 
     def __convert_to_command(self, limit: float) -> float:
         if self.config.command.type == appconfig.InverterCommandType.RELATIVE:
@@ -180,7 +180,7 @@ class LimitCalculator:
 
         seg.append(f"Cal: {int(result.is_calibration)}")
         seg.append(f"Thr: {int(result.is_throttled)}")
-        seg.append(f"Min: {int(result.is_not_over_min_diff)}")
+        seg.append(f"Hys: {int(result.is_hysteresis_suppressed)}")
         seg.append(f"Ret: {int(result.is_retransmit)}")
         seg.append(f"Elapsed: {result.elapsed:.2f}")
 

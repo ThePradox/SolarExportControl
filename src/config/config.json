@@ -23,7 +23,7 @@
         "maxPower": 1200,
         "type": "relative",
         "throttle": 5,
-        "minDiff": 0.0,
+        "hysteresis": 0.0,
         "retransmit": 0
     },
     "reading": {
