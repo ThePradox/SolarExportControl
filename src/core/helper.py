@@ -217,6 +217,7 @@ class MetaControlHelper(MqttHelper):
             self.__discovery_status_enabled = self.__create_discovery_status_enabled()
             self.__discovery_status_inverter = self.__create_discovery_status_inverter()
             self.__discovery_status_active = self.__create_discovery_status_active()
+            self.__discovery_switch_status_enabled = self.__create_discovery_switch_enabled()
 
     def setup_will(self) -> None:
         self.client.will_set(self.topic_meta_core_online, MQTT_PL_FALSE, 0, True)
@@ -278,6 +279,7 @@ class MetaControlHelper(MqttHelper):
         self.publish(self.__discovery_status_enabled[0], self.__discovery_status_enabled[1], 0, True)
         self.publish(self.__discovery_status_inverter[0], self.__discovery_status_inverter[1], 0, True)
         self.publish(self.__discovery_status_active[0], self.__discovery_status_active[1], 0, True)
+        self.publish(self.__discovery_switch_status_enabled[0], self.__discovery_switch_status_enabled[1], 0, True)
 
         if self.config.meta.telemetry.power:
             self.publish(self.__discovery_reading[0], self.__discovery_reading[1], 0, True)
@@ -333,7 +335,7 @@ class MetaControlHelper(MqttHelper):
 
     def __create_discovery_reading(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
-        uniq_id = f"sec_{config.id}_tele_reading"
+        uniq_id = f"sec_{config.id}_state_tele_reading"
         name = f"{config.name} Power"
         node_id = f"sec_{config.id}"
         topic = self.__create_discovery_topic("sensor", node_id, "reading")
@@ -342,7 +344,7 @@ class MetaControlHelper(MqttHelper):
 
     def __create_disovery_sample(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
-        uniq_id = f"sec_{config.id}_tele_sample"
+        uniq_id = f"sec_{config.id}_state_tele_sample"
         name = f"{config.name} Sample"
         node_id = f"sec_{config.id}"
         topic = self.__create_discovery_topic("sensor", node_id, "sample")
@@ -351,7 +353,7 @@ class MetaControlHelper(MqttHelper):
 
     def __create_discovery_overshoot(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
-        uniq_id = f"sec_{config.id}_tele_overshoot"
+        uniq_id = f"sec_{config.id}_state_tele_overshoot"
         name = f"{config.name} Overshoot"
         node_id = f"sec_{config.id}"
         topic = self.__create_discovery_topic("sensor", node_id, "overshoot")
@@ -360,7 +362,7 @@ class MetaControlHelper(MqttHelper):
 
     def __create_discovery_limit(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
-        uniq_id = f"sec_{config.id}_tele_limit"
+        uniq_id = f"sec_{config.id}_state_tele_limit"
         name = f"{config.name} Limit"
         node_id = f"sec_{config.id}"
         topic = self.__create_discovery_topic("sensor", node_id, "limit")
@@ -369,7 +371,7 @@ class MetaControlHelper(MqttHelper):
 
     def __create_discovery_command(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
-        uniq_id = f"sec_{config.id}_tele_command"
+        uniq_id = f"sec_{config.id}_state_tele_command"
         name = f"{config.name} Command"
         node_id = f"sec_{config.id}"
         topic = self.__create_discovery_topic("sensor", node_id, "command")
@@ -379,7 +381,7 @@ class MetaControlHelper(MqttHelper):
 
     def __create_discovery_status_enabled(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
-        uniq_id = f"sec_{config.id}_status_enabled"
+        uniq_id = f"sec_{config.id}_state_status_enabled"
         name = f"{config.name} Status Enabled"
         node_id = f"sec_{config.id}"
         topic = self.__create_discovery_topic("binary_sensor", node_id, "status_enabled")     
@@ -388,7 +390,7 @@ class MetaControlHelper(MqttHelper):
 
     def __create_discovery_status_inverter(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
-        uniq_id = f"sec_{config.id}_status_inverter"
+        uniq_id = f"sec_{config.id}_state_status_inverter"
         name = f"{config.name} Status Inverter"
         node_id = f"sec_{config.id}"
         topic = self.__create_discovery_topic("binary_sensor", node_id, "status_inverter")     
@@ -397,13 +399,23 @@ class MetaControlHelper(MqttHelper):
 
     def __create_discovery_status_active(self) -> Tuple[str, str]:
         config = self.config.meta.discovery
-        uniq_id = f"sec_{config.id}_status_active"
+        uniq_id = f"sec_{config.id}_state_status_active"
         name = f"{config.name} Status Active"
         node_id = f"sec_{config.id}"
         topic = self.__create_discovery_topic("binary_sensor", node_id, "status_active")     
         payload = self.__create_discovery_payload_tele_sensor_binary(name, uniq_id, self.topic_meta_core_active, uniq_id)
         return (topic, payload)
 
+    def __create_discovery_switch_enabled(self) -> Tuple[str, str]:
+        config = self.config.meta.discovery
+        device = self.__discovery_device
+        unique_id = f"sec_{config.id}_switch_status_enabled"
+        name = f"{config.name} Switch Enabled"
+        node_id = f"sec_{config.id}"
+        icon = "mdi:power"
+        topic = self.__create_discovery_topic("switch", node_id, "switch_status_enabled")
+        payload = f'{{"name": "{name}", "object_id": "{unique_id}", "unique_id": "{unique_id}", "state_topic": "{self.topic_meta_core_enabled}", "command_topic": "{self.topic_meta_cmd_enabled}", "availability_topic": "{self.topic_meta_core_online}", "payload_on": "{MQTT_PL_TRUE}", "payload_off": "{MQTT_PL_FALSE}", "payload_available": "{MQTT_PL_TRUE}", "payload_not_available": "{MQTT_PL_FALSE}", "device": {device}, "icon": "{icon}", "optimistic": false, "qos": 0, "retain": true }}'
+        return (topic, payload)
 
     def __create_discovery_device(self) -> str:
         config = self.config.meta.discovery
