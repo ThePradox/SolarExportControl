@@ -22,6 +22,15 @@ class AppConfig:
         self.meta = meta
         self.customize = customize
 
+    def to_json(self) -> dict:
+        return {
+            "mqtt": self.mqtt.to_json(),
+            "command": self.command.to_json(),
+            "reading": self.reading.to_json(),
+            "meta": self.meta.to_json(),
+            "customize": self.customize.to_json()
+        }
+
     @staticmethod
     def from_json_file(path: str) -> AppConfig:
         fs = open(path, "r")
@@ -72,12 +81,26 @@ class MqttConfig:
         self.host: str = host
         self.port: int = port if port is not None else 1883
         self.keepalive: int = keepalive if keepalive is not None else 60
-        self.protocol: int = protocol if protocol is not None else mqtt.MQTTv311
+        self.protocol: int = protocol if protocol is not None else mqtt.MQTTv5
         self.retain: bool = retain if retain is not None else False
         self.client_id: str = client_id if client_id is not None else "solar-export-control"
         self.clean_session = clean_session if clean_session is not None else True
         self.topics: MqttTopicConfig = topics
         self.auth: MqttAuthConfig | None = auth
+
+    def to_json(self) -> dict:
+
+        return {
+            "host": str(self.host),
+            "port": self.port,
+            "keepalive": self.keepalive,
+            "protocol": self.protocol,
+            "retain": self.retain,
+            "clientId": self.client_id,
+            "cleanSession": self.clean_session,
+            "topics": self.topics.to_json(),
+            "auth": self.auth.to_json() if self.auth is not None else None
+        }
 
     @staticmethod
     def from_json(json: dict) -> MqttConfig:
@@ -145,6 +168,13 @@ class MqttTopicConfig:
         self.write_limit: str | None = write_limit
         self.inverter_status: str | None = status
 
+    def to_json(self) -> dict:
+        return {
+            "readPower": str(self.read_power),
+            "writeLimit": self.write_limit,
+            "inverterStatus": self.inverter_status
+        }
+
     @staticmethod
     def from_json(json: dict) -> MqttTopicConfig:
         j_read_power = json.get("readPower")
@@ -166,6 +196,12 @@ class MqttAuthConfig:
     def __init__(self, username: str, password: str | None) -> None:
         self.username: str = username
         self.password: str | None = password
+
+    def to_json(self) -> dict:
+        return {
+            "username": str(self.username),
+            "password": self.password
+        }
 
     @staticmethod
     def from_json(json: dict) -> MqttAuthConfig:
@@ -189,6 +225,25 @@ class CommandConfig:
         self.throttle: int = throttle
         self.hysteresis: float = hysteresis
         self.retransmit: int = retransmit
+
+    def to_json(self) -> dict:
+        match self.type:
+            case InverterCommandType.ABSOLUTE:
+                str_type = "absolute"
+            case InverterCommandType.RELATIVE:
+                str_type = "relative"
+            case _:
+                str_type = "absolute"
+
+        return {
+            "target": int(self.target),
+            "minPower": int(self.min_power),
+            "maxPower": int(self.max_power),
+            "type": str_type,
+            "throttle": int(self.throttle),
+            "hysteresis": float(self.hysteresis),
+            "retransmit": int(self.retransmit)
+        }
 
     @staticmethod
     def from_json(json: dict) -> CommandConfig:
@@ -253,6 +308,13 @@ class ReadingConfig:
         self.smoothingSampleSize = smoothingSampleSize
         self.offset = offset
 
+    def to_json(self) -> dict:
+        return {
+            "offset": int(self.offset),
+            "smoothing": int(self.smoothing),
+            "smoothingSampleSize": int(self.smoothingSampleSize)
+        }
+
     @staticmethod
     def from_json(json: dict) -> ReadingConfig:
         j_smoothing = json.get("smoothing")
@@ -281,6 +343,13 @@ class CustomizeConfig:
         self.calibration = calibration
         self.command = command
 
+    def to_json(self) -> dict:
+        return {
+            "status": self.status,
+            "calibration": self.calibration,
+            "command": self.command
+        }
+
     @staticmethod
     def from_json(json: dict) -> CustomizeConfig:
         j_status = json.get("status")
@@ -307,6 +376,14 @@ class MetaControlConfig:
         self.telemetry = telemetry
         self.discovery = ha_discovery
 
+    def to_json(self) -> dict:
+        return {
+            "prefix": str(self.prefix),
+            "resetInverterLimitOnInactive": bool(self.reset_inverter_on_inactive),
+            "telemetry": self.telemetry.to_json(),
+            "homeAssistantDiscovery": self.discovery.to_json()
+        }
+
     @staticmethod
     def from_json(json: dict) -> MetaControlConfig:
         j_reset = json.get("resetInverterLimitOnInactive")
@@ -324,7 +401,7 @@ class MetaControlConfig:
             raise ValueError(f"MetaControlConfig: Invalid telemetry: '{j_telemetry}'")
         o_telemetry = MetaTelemetryConfig.from_json(j_telemetry)
 
-        j_discovery = json.get("homeAssistantDiscovery")     
+        j_discovery = json.get("homeAssistantDiscovery")
         if type(j_discovery) is not dict:
             raise ValueError(f"MetaControlConfig: Invalid homeAssistantDiscovery: '{j_telemetry}'")
 
@@ -340,6 +417,15 @@ class MetaTelemetryConfig:
         self.overshoot = overshoot
         self.limit = limit
         self.command = command
+
+    def to_json(self) -> dict:
+        return {
+            "power": bool(self.power),
+            "sample": bool(self.sample),
+            "overshoot": bool(self.overshoot),
+            "limit": bool(self.limit),
+            "command": bool(self.command)
+        }
 
     @staticmethod
     def from_json(json: dict) -> MetaTelemetryConfig:
@@ -372,6 +458,14 @@ class HA_DiscoveryConfig:
         self.prefix = prefix
         self.id = id
         self.name = name
+
+    def to_json(self) -> dict:
+        return {
+            "enabled": bool(self.enabled),
+            "discoveryPrefix": str(self.prefix),
+            "id": int(self.id),
+            "name": str(self.name)
+        }
 
     @staticmethod
     def from_json(json: dict) -> HA_DiscoveryConfig:
