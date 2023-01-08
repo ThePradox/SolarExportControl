@@ -492,9 +492,9 @@ class AppMqttHelper(MetaControlHelper):
             self.__on_inverter_status(value)
 
     def publish_command(self, command: str) -> None:
-        if self.config.mqtt.topics.write_limit:
-            r = self.publish(self.config.mqtt.topics.write_limit, command, 0, self.config.mqtt.retain)
-            logging.info(f"Published limit: '{command}', Result: '{r}'")
+        if self.config.mqtt.topics.write_command:
+            r = self.publish(self.config.mqtt.topics.write_command, command, 0, self.config.mqtt.retain)
+            logging.info(f"Published command: '{command}', Result: '{r}'")
 
     def subscribe_power_reading(self) -> None:
         self.subscribe(self.config.mqtt.topics.read_power, 0)
