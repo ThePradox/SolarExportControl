@@ -3,7 +3,7 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": [
+    "configurations": [  
         {
             "name": "SolarExportControl: Run",
             "type": "python",
@@ -14,6 +14,18 @@
             "args": [
                 "./src/config/config.json",
                 "--verbose"
+            ]
+        },
+        {
+            "name": "SolarExportControl: Wizard",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
+            "console": "externalTerminal",
+            "justMyCode": true,
+            "args": [
+                "./src/config/config.json",
+                "--wizard"
             ]
         }
     ]
