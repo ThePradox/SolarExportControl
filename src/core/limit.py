@@ -150,8 +150,13 @@ class LimitCalculator:
 
     def __hysteresis_threshold_breached(self, limit: float) -> bool:
         if self.config.command.hysteresis == 0:
+            # Hysteresis disabled, always use new limit
             return True
-        return abs(self.last_limit_value - limit) >= self.config.command.hysteresis
+        elif limit == self.limit_max and self.last_limit_value != limit:
+            # Ignore hysteresis threshold value if limit is max and the last limit is not max. Otherwise a limit of 99% may never returns to 100%.
+            return True
+        else:
+            return abs(self.last_limit_value - limit) >= self.config.command.hysteresis
 
     def __convert_to_command(self, limit: float) -> float:
         if self.config.command.type == appconfig.InverterCommandType.RELATIVE:
@@ -169,14 +174,14 @@ class LimitCalculator:
 
         seg = []
         seg.append(f"Reading: {result.reading:>8.2f}")
-        seg.append(f"Sample: {result.sample:>6.2f}")
-        seg.append(f"Overshoot: {result.overshoot:>6.2f}")
-        seg.append(f"Limit: {result.limit:>7.2f}")
+        seg.append(f"Sample: {result.sample:>8.2f}")
+        seg.append(f"Overshoot: {result.overshoot:>8.2f}")
+        seg.append(f"Limit: {result.limit:>8.2f}")
 
         if result.command is not None:
-            seg.append(f"Command: {result.command:>7.2f}")
+            seg.append(f"Command: {result.command:>8.2f}")
         else:
-            seg.append(f"Command:    None")
+            seg.append(f"Command:     None")
 
         seg.append(f"Cal: {int(result.is_calibration)}")
         seg.append(f"Thr: {int(result.is_throttled)}")
