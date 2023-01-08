@@ -81,7 +81,7 @@ class MqttConfig:
         self.host: str = host
         self.port: int = port if port is not None else 1883
         self.keepalive: int = keepalive if keepalive is not None else 60
-        self.protocol: int = protocol if protocol is not None else mqtt.MQTTv5
+        self.protocol: int = protocol if protocol is not None else mqtt.MQTTv311
         self.retain: bool = retain if retain is not None else False
         self.client_id: str = client_id if client_id is not None else "solar-export-control"
         self.clean_session = clean_session if clean_session is not None else True
@@ -163,15 +163,15 @@ class MqttConfig:
 
 
 class MqttTopicConfig:
-    def __init__(self, read_power: str, write_limit: str | None, status: str | None) -> None:
+    def __init__(self, read_power: str, write_command: str | None, status: str | None) -> None:
         self.read_power: str = read_power
-        self.write_limit: str | None = write_limit
+        self.write_command: str | None = write_command
         self.inverter_status: str | None = status
 
     def to_json(self) -> dict:
         return {
             "readPower": str(self.read_power),
-            "writeLimit": self.write_limit,
+            "writeCommand": self.write_command,
             "inverterStatus": self.inverter_status
         }
 
@@ -181,15 +181,15 @@ class MqttTopicConfig:
         if type(j_read_power) is not str or not j_read_power:
             raise ValueError(f"MqttTopicConfig: Invalid readPower: '{j_read_power}'")
 
-        j_write_limit = json.get("writeLimit")
-        if type(j_write_limit) is not str or not j_write_limit:
-            j_write_limit = None
+        j_write_command = json.get("writeCommand")
+        if type(j_write_command) is not str or not j_write_command:
+            j_write_command = None
 
         j_status = json.get("inverterStatus")
         if type(j_status) is not str or not j_status:
             j_status = None
 
-        return MqttTopicConfig(read_power=j_read_power, write_limit=j_write_limit, status=j_status)
+        return MqttTopicConfig(read_power=j_read_power, write_command=j_write_command, status=j_status)
 
 
 class MqttAuthConfig:
@@ -309,9 +309,11 @@ class ReadingConfig:
         self.offset = offset
 
     def to_json(self) -> dict:
+        sm = "avg" if self.smoothing == PowerReadingSmoothingType.AVG else None
+
         return {
             "offset": int(self.offset),
-            "smoothing": int(self.smoothing),
+            "smoothing": sm,
             "smoothingSampleSize": int(self.smoothingSampleSize)
         }
 
