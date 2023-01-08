@@ -9,7 +9,7 @@
         "cleanSession": true,
         "topics": {
             "readPower": "",
-            "writeLimit": null,
+            "writeCommand": null,
             "inverterStatus": null
         },
         "auth": {
