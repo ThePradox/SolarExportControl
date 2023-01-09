@@ -77,13 +77,13 @@ class ExportControlAgent:
     def __set_status(self, meta_status: bool | None = None, inverter_status: bool | None = None, force: bool = False) -> None:
         meta_status_retr = meta_status is None
         inverter_status_retr = inverter_status is None
-
+       
         if meta_status_retr:
             meta_status = self.__meta_status
-
+    
         if inverter_status_retr:
             inverter_status = self.__inverter_status
-
+        
         if not force and self.__inverter_status == inverter_status and self.__meta_status == meta_status:
             return
 
@@ -97,13 +97,14 @@ class ExportControlAgent:
         self.helper.publish_meta_status_enabled(meta_status)
         self.helper.publish_meta_status_inverter(inverter_status)
         self.helper.publish_meta_status_active(active)
-        
-        if active:
-            logging.info("Application status: Active")
+        reason = f"Enabled: {'on ' if meta_status else 'off'}, Inverter: {'on ' if inverter_status else 'off'}"
+
+        if active:         
+            logging.info(f"Application status: Active -> {reason}")
             self.limitcalc.reset()
             self.helper.subscribe_power_reading()         
         else:
-            logging.info("Application status: Inactive")
+            logging.info(f"Application status: Inactive -> {reason}")
             self.helper.unsubscribe_power_reading()
             if not meta_status and not meta_status_retr and self.config.meta.reset_inverter_on_inactive and self.__inverter_status:
                 self.__send_command(self.limitcalc.get_command_max())
