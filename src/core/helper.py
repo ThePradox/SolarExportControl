@@ -419,7 +419,7 @@ class MetaControlHelper(MqttHelper):
 
     def __create_discovery_device(self) -> str:
         config = self.config.meta.discovery
-        return f'{{"name":"{config.name}", "ids":"{config.id}","mdl":"Python Script", "mf":"Solar Export Control"}}'
+        return f'{{"name":"{config.name}", "ids":"{config.id}","mdl":"Python Application", "mf":"Solar Export Control"}}'
 
     def __create_discovery_payload_tele_sensor(self, name: str, obj_id: str, state_topic: str, unit: str, unique_id: str, dev_class: str, state_class, icon: str) -> str:
         device = self.__discovery_device
