@@ -24,11 +24,13 @@ If your consumption is lower than your target: Increase the limit on your solar 
   - Min limit
   - Relative (%) or absolute (W)
   - Throttle amount of commands
-  - Minimum difference to last command
+  - Minimum difference to last command (hysteresis)
 - Configurable power reading:
   - Offset
   - Smoothing: Average over X samples
-- Configurable sleep mode. Turn off during night!
+- Listen to inverter status: Turn off limit calculation when your inverter does not produce
+- Turn on / off via mqtt
+- Home Assistant integration
 - Scriptable calibration
 - Scriptable generic limit callback: Send your inverter limit anywhere!
 
@@ -62,9 +64,9 @@ An ongoing graph/config screenshot collection can be found [here](docs/Demo.md)
 
 ## Config
 
-You **must** edit the `.\src\config\config.json` to match your environment:
+Edit edit the `.\src\config\config.json` to match your environment: [Docs](/docs/Config.md)
 
-See [Docs](/docs/Config.md)
+Alternative: Use the `--wizard` argument to get guided through config creation
 
 ## Customize
 
@@ -85,6 +87,11 @@ See [Docs](/docs/Customize.md)
 - Optional arguments:
   - `--verbose` : detailed logging
   - `--mqttdiag`: additional mqtt diagnostics
+  - `--wizard`: interactive wizard for creating a basic config file
+
+## MQTT Topics
+
+See [Docs](/docs/Mqtt.md)
 
 ## Docker support
 
@@ -94,11 +101,11 @@ See [Docs](/docs/Docker.md)
 
 For `config.command.hysteresis` I would suggest about 1-3% of your `command.maxPower`
 
-If your power reading interval is less than or around 5 seconds:
+If your power reading interval is less than or around 10 seconds:
 
-- `config.command.throttle: 5`
+- `config.command.throttle: 10`
 - `config.reading.smoothing: "avg"`
-- `config.reading.smoothingSampleSize:5`
+- `config.reading.smoothingSampleSize:8`
 
 If your power reading interval is slower you are free to turn especially `config.command.throttle` to `0`.
 

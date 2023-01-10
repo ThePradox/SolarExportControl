@@ -124,9 +124,9 @@ config.json
 ```python
 # Get initial inverter status (True = Active / False = Inactive)
 def get_status_init(config: dict) -> bool:
-    url: str = config["url"]                    # Get url from config
-    resp = requests.get(url).json()             # Get status page and parse json
-    return resp[0].get("reachable") == True     # Test if inverter is reachable
+    url: str = config["url"]                             # Get url from config
+    resp = requests.get(url).json()                      # Get status page and parse json
+    return resp["inverters"][0]["reachable"] == True     # Test if inverter is reachable
 ```
 
 </details>
@@ -206,7 +206,7 @@ config.json
 def calibrate(config: dict) -> float | None:
     url: str = config["url"]
     resp = requests.get(url).json()
-    val = resp[0]["0"]["Power"]["v"]
+    val = resp["total"]["Power"]["v"]
 
     if type(val) is float:
         return val

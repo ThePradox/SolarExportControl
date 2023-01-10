@@ -94,8 +94,8 @@ Setup how commands will be issued
 | :red_circle:      | `command.minPower`     | int              | Watt (W)      | the lower power limit the inverter can be set to
 | :red_circle:      | `command.maxPower`     | int              | Watt (W)      | the upper power limit the inverter can be set to
 | :red_circle:      | `command.type`         | string: "absolute" or "relative"|| controls wether the limit command is absolute in watts (W) or in relative percent of `command.maxPower`
-| :red_circle:      | `command.throttle`     | int              | Seconds (s)   | time that must pass between limit commands. Use `0` to disable
-| :red_circle:      | `command.hysteresis`   | number           | Watt (W)      | minimum difference between two limit commands. Use `0.00` to disable
+| :red_circle:      | `command.throttle`     | int              | Seconds (s)   | minimum amount of time that must pass after a limit command has been issued before a new one can be issued. Use `0` to disable
+| :red_circle:      | `command.hysteresis`   | number           | Watt (W)      | minimum threshold that must been reached after a limit command has been issued before a new one can be issued. Use `0.00` to disable
 | :red_circle:      | `command.retransmit`   | int              | Seconds       | time after which `command.hysteresis` is ignored to retransmit the limit command. Useful if commands can get 'lost' on the way to the inverter. Use `0` to disable
 
 <br />
@@ -162,10 +162,10 @@ Setup how this application can be controlled and how it publishes telemetry
 
 |Req                | Property                            | Type          | Description
 |---                | ---                                 | ---           |---
-| :red_circle:      | `meta.prefix`                       | string        | Prefix used for every mqtt topic managed by this application
-| :red_circle:      | `meta.resetInverterLimitOnInactive` | bool          | Should the inverter limit be reset to max when application is disabled?
-| :red_circle:      | `meta.telemtry`                     | object        | Manages the information which are published as mqtt topics
-| :red_circle:      | `meta.homeAssistantDiscovery`       | object        | Manages the home assistant auto discovery
+| :red_circle:      | `meta.prefix`                       | string        | prefix used for every mqtt topic managed by this application
+| :red_circle:      | `meta.resetInverterLimitOnInactive` | bool          | should the inverter limit be reset to max when application is disabled?
+| :red_circle:      | `meta.telemtry`                     | object        | manages the information which are published as mqtt topics
+| :red_circle:      | `meta.homeAssistantDiscovery`       | object        | manages the home assistant auto discovery
 
 ### META.TELEMETRY Properties
 
@@ -173,11 +173,11 @@ Setup which values are published as telemetry
 
 |Req                | Property                            | Type | Unit     | Description
 |---                | ---                                 | ---  |---       |---
-| :red_circle:      | `telemetry.power`                   | bool | Watt (W) | Outputs the raw power value as parsed from `mqtt.topics.readPower`
-| :red_circle:      | `telemetry.sample`                  | bool | Watt (W) | Outputs the power value after applying `reading.offset` and `reading.smoothing`
-| :red_circle:      | `telemetry.overshoot`               | bool | Watt (W) | Outputs the difference between the last sample and `command.target`
-| :red_circle:      | `telemetry.limit`                   | bool | Watt (W) | Outputs the calculated inverter limit
-| :red_circle:      | `telemetry.command`                 | bool | Watt (W) or Percent (%) | Outputs the last issued inverter limit command as published in `mqtt.topics.writeCommand`. Watt if `command.type` is absolute, percent if relative
+| :red_circle:      | `telemetry.power`                   | bool | Watt (W) | outputs the raw power value as parsed from `mqtt.topics.readPower`
+| :red_circle:      | `telemetry.sample`                  | bool | Watt (W) | outputs the power value after applying `reading.offset` and `reading.smoothing`
+| :red_circle:      | `telemetry.overshoot`               | bool | Watt (W) | outputs the difference between the last sample and `command.target`
+| :red_circle:      | `telemetry.limit`                   | bool | Watt (W) | outputs the calculated inverter limit
+| :red_circle:      | `telemetry.command`                 | bool | Watt (W) or Percent (%) | outputs the last issued inverter limit command as published in `mqtt.topics.writeCommand`. Watt if `command.type` is `absolute`, percent if `relative`
 
 ### META.HOMEASSISTANTDISCOVERY
 
@@ -185,10 +185,10 @@ Setup the home assistant integration (auto discovery of telemetry)
 
 |Req                | Property                                 | Type   | Description
 |---                | ---                                      | ---    |---
-| :red_circle:      | `homeAssistantDiscovery.enabled`         | bool   | Enables or disables the integration
-| :red_circle:      | `homeAssistantDiscovery.discoveryPrefix` | string | Sets home assistant auto discovery topic prefix. Use `homeassistant` unless you have changed this in home assistant
-| :red_circle:      | `homeAssistantDiscovery.id`              | int    | Used for creating the unique id in home assistant. Only change this if you run multiple instances of this program
-|  :red_circle:     | `homeAssistantDiscovery.name`            | string | The name of the device and entites in home assistant
+| :red_circle:      | `homeAssistantDiscovery.enabled`         | bool   | enables or disables the integration
+| :red_circle:      | `homeAssistantDiscovery.discoveryPrefix` | string | sets home assistant auto discovery topic prefix. Use `homeassistant` unless you have changed this in home assistant
+| :red_circle:      | `homeAssistantDiscovery.id`              | int    | used for creating the unique id in home assistant. Only change this if you run multiple instances of this program
+|  :red_circle:     | `homeAssistantDiscovery.name`            | string | the name of the device and entites in home assistant
 
 ## CUSTOMIZE
 
