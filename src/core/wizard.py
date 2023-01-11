@@ -7,7 +7,7 @@ import math
 import os.path
 import pathlib
 
-HOYMILES_MIN_POWER_PERCENT = float(0.02)
+HOYMILES_MIN_POWER_PERCENT = float(0.03)
 HOYMILES_THROTTLE = int(10)
 HYSTERESIS_FACTOR = float(0.02)
 
