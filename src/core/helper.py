@@ -224,11 +224,11 @@ class MetaControlHelper(MqttHelper):
 
     def publish_meta_status_enabled(self, enabled: bool) -> None:
         payload = MQTT_PL_TRUE if enabled else MQTT_PL_FALSE
-        self.publish(self.topic_meta_core_enabled, payload, 0, False)
+        self.publish(self.topic_meta_core_enabled, payload, 0, True)
 
     def publish_meta_status_active(self, active: bool) -> None:
         payload = MQTT_PL_TRUE if active else MQTT_PL_FALSE
-        self.publish(self.topic_meta_core_active, payload, 0, False)
+        self.publish(self.topic_meta_core_active, payload, 0, True)
 
     def publish_meta_status_online(self, online: bool) -> None:
         payload = MQTT_PL_TRUE if online else MQTT_PL_FALSE
@@ -236,7 +236,7 @@ class MetaControlHelper(MqttHelper):
 
     def publish_meta_status_inverter(self, status: bool) -> None:
         payload = MQTT_PL_TRUE if status else MQTT_PL_FALSE
-        self.publish(self.topic_meta_core_inverter_status, payload, 0, False)
+        self.publish(self.topic_meta_core_inverter_status, payload, 0, True)
 
     def publish_meta_tele_reading(self, reading: float) -> None:
         if self.config.meta.telemetry.power:
@@ -376,7 +376,7 @@ class MetaControlHelper(MqttHelper):
         node_id = f"sec_{config.id}"
         topic = self.__create_discovery_topic("sensor", node_id, "command")
         unit = "%" if self.config.command.type == appconfig.InverterCommandType.RELATIVE else "W"
-        payload = self.__create_discovery_payload_tele_sensor(name, uniq_id, self.topic_meta_tele_cmd, unit, uniq_id, "power", "measurement", "mdi:cube-send")
+        payload = self.__create_discovery_payload_tele_sensor(name, uniq_id, self.topic_meta_tele_cmd, unit, uniq_id, None, None, "mdi:cube-send")
         return (topic, payload)
 
     def __create_discovery_status_enabled(self) -> Tuple[str, str]:
@@ -421,9 +421,12 @@ class MetaControlHelper(MqttHelper):
         config = self.config.meta.discovery
         return f'{{"name":"{config.name}", "ids":"{config.id}","mdl":"Python Application", "mf":"Solar Export Control"}}'
 
-    def __create_discovery_payload_tele_sensor(self, name: str, obj_id: str, state_topic: str, unit: str, unique_id: str, dev_class: str, state_class, icon: str) -> str:
+    def __create_discovery_payload_tele_sensor(self, name: str, obj_id: str, state_topic: str, unit: str, unique_id: str, dev_class: str | None, state_class: str | None, icon: str) -> str:
         device = self.__discovery_device
-        return f'{{"name": "{name}","object_id":"{obj_id}","state_topic": "{state_topic}","unit_of_measurement": "{unit}","unique_id": "{unique_id}","device_class": "{dev_class}","state_class": "{state_class}","icon": "{icon}","device": {device},"availability_mode": "all","availability": [{{"topic": "{self.topic_meta_core_online}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}},{{"topic": "{self.topic_meta_core_active}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}}]}}'
+        dev_class_str = "null" if dev_class is None else f'"{dev_class}"'
+        state_class_str = "null" if state_class is None else f'"{state_class}"'
+
+        return f'{{"name": "{name}","object_id":"{obj_id}","state_topic": "{state_topic}","unit_of_measurement": "{unit}","unique_id": "{unique_id}","device_class": {dev_class_str},"state_class": {state_class_str},"icon": "{icon}","device": {device},"availability_mode": "all","availability": [{{"topic": "{self.topic_meta_core_online}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}},{{"topic": "{self.topic_meta_core_active}","payload_available": "{MQTT_PL_TRUE}","payload_not_available": "{MQTT_PL_FALSE}"}}]}}'
 
     def __create_discovery_payload_tele_sensor_binary(self, name: str, obj_id: str, state_topic: str, unique_id: str) -> str:
         device = self.__discovery_device
