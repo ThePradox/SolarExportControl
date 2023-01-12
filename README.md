@@ -4,6 +4,10 @@
 
 This application was tested multiple days on my setup. Further tests on other setups are necessary!
 
+## V 2: Now with home assistant integration
+
+![Screenshot](./docs/screenshots/HomeAssistantIntegration_Basic.png)
+
 ## Description
 
 This application takes your current electric power consumption (from a digital electric meter for example) and compares it to a defined target value.
