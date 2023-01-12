@@ -104,7 +104,6 @@ def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
 
 </details>
 
-<br />
 
 ## Optional: `command_to_generic`
 
