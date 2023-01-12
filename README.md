@@ -19,7 +19,6 @@ If your consumption is lower than your target: Increase the limit on your solar 
 
 ## Implemented Features
 
-- Most MQTT settings exposed
 - Configurable command behaviour:
   - Min limit
   - Relative (%) or absolute (W)
@@ -31,7 +30,6 @@ If your consumption is lower than your target: Increase the limit on your solar 
 - Listen to inverter status: Turn off limit calculation when your inverter does not produce
 - Turn on / off via mqtt
 - Home Assistant integration
-- Scriptable calibration
 - Scriptable generic limit callback: Send your inverter limit anywhere!
 
 ## Demo
@@ -57,22 +55,33 @@ An ongoing graph/config screenshot collection can be found [here](docs/Demo.md)
 
 1. Fullfill [Requirements](#requirements)
 2. Clone or download Repo
-3. Install requirements `$ pip install -r requirements.txt`
-4. Modify [config](/src/config/config.json) to your liking
-5. Modify [customize](/src/config/customize.py) to match your devices
-6. [Run](#how-to-run)
+3. Open a terminal (CMD, Powershell, Bash etc.) in the project root directory
+4. Install requirements. Execute:
+   > `pip install -r requirements.txt`
+5. Create a basic config. Execute:
+   > `python .\src\main.py .\src\config\config.json --wizard`
+6. Answer the questions. Use the created config file whenver a `config.json` is passed.
+7. Optional: Further modify [config](#config) to your liking
+8. Modify [customize](#customize) to match your devices
+9. [Run](#how-to-run)
 
 ## Config
 
-Edit edit the `.\src\config\config.json` to match your environment: [Docs](/docs/Config.md)
+Edit the `.\src\config\config.json` to match your environment: [Docs](/docs/Config.md)
 
 Alternative: Use the `--wizard` argument to get guided through config creation
 
 ## Customize
 
-You **must** edit the `.\src\config\customize.py` to match your devices:
+You must at least check 2 things:
 
-See [Docs](/docs/Customize.md)
+**1. What data is my power meter sending?**
+
+This application needs the value as a number, but your power meter may publish json or an other arbitrary payload. You must edit the `parse_power_payload` function to convert the payload to a number. See [customize](./docs/Customize.md#required-parse_power_payload) for examples.
+
+**2. How should the calculated limit be formated before publishing it?**
+
+Maybe your inverter wants the new limit as json? For most people it will be as easy as rounding to 2 decimal places. You must edit the `command_to_payload` function to convert the new limit command to your desired payload. See [customize](./docs/Customize.md#required-command_to_payload)
 
 ## How to run
 

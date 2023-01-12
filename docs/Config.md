@@ -11,14 +11,14 @@ Found in `/src/config/config.json`. Properties not required can be `null`
         "port": 1883,
         "keepalive": 60,
         "protocol": 5,
-        "retain": false,
         "clientId": "sec_1673108642",
-        "cleanSession": true,
+
         "topics": {
             "readPower": "power/xxx-xxx-xxx/tele/SENSOR",
             "writeCommand": "solar/xxx/cmd/limit_nonpersistent_relative",
             "inverterStatus": "solar/xxx/status/producing"
         },
+
         "auth": {
             "username": "my-user",
             "password": "my-password"
@@ -37,9 +37,7 @@ Setup basic mqtt properties
 |                   | `mqtt.port`            | int               | 1883          | network port of the server host to connect to
 |                   | `mqtt.keepalive`       | int               | 60            | maximum period in seconds allowed between communications with the broker
 |                   | `mqtt.protocol`        | int               | 4             | version of the mqtt protocol to use. `MQTTv31 = 3`, `MQTTv311 = 4`, `MQTTv5 = 5`
-|                   | `mqtt.retain`          | bool              | false         | set the limit command message to be retained (true) or not (false)
-|:yellow_circle:    | `mqtt.clientId`        | string            | solar-export-control | mqtt client id to use, required if `cleanSession=false` or if multiple instances of this program are running
-|                   | `mqtt.cleanSession`    | bool              | true          | client type. See [clean_session](https://pypi.org/project/paho-mqtt/#constructor-reinitialise)
+|:yellow_circle:    | `mqtt.clientId`        | string            | solar-export-control | mqtt client id to use, required if multiple instances of this program are running
 | :red_circle:      | `mqtt.topics`          | object            |               | controls mqtt topics
 |                   | `mqtt.auth`            | object            | null          | controls mqtt auth
 
@@ -139,6 +137,7 @@ Setup how power reading will be handled
     "meta": {
         "prefix": "solarexportcontrol",
         "resetInverterLimitOnInactive": true,
+
         "telemetry": {
             "power": true,
             "sample": true,
@@ -146,6 +145,7 @@ Setup how power reading will be handled
             "limit": true,
             "command": true
         },
+
         "homeAssistantDiscovery": {
             "enabled": true,
             "discoveryPrefix": "homeassistant",
@@ -195,8 +195,6 @@ Setup the home assistant integration (auto discovery of telemetry)
 ```json
 ...
 "customize": {
-    "status": {},
-    "calibration": {},
     "command": {}
 }
 ...
@@ -206,8 +204,6 @@ Setup the home assistant integration (auto discovery of telemetry)
 
 Specify arbitrary data to pass to `customize.py` functions
 
-|Req                | Property               | Type             | Default       | Description
-|---                | ---                    | ---              |---            |---
-|                   | `customize.status`     | object           | (empty) object| data passed to `get_status_init` in `customize.py`
-|                   | `customize.calibration`| object           | (empty) object| data passed to `calibrate` in `customize.py`
-|                   | `customize.command`    | object           | (empty) object| data passed to `command_to_generic` in `customize.py`
+|Req                | Property               | Type             | Default        | Description
+|---                | ---                    | ---              |---             |---
+|                   | `customize.command`    | object           | (empty) object | data passed to `command_to_generic` in `customize.py`
