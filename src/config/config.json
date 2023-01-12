@@ -1,22 +1,23 @@
 {
     "mqtt": {
         "host": "",
-        "port": null,
-        "keepalive": null,
-        "protocol": 5,
-        "retain": null,
+        "port": 1883,
+        "keepalive": 60,
+        "protocol": 4,   
         "clientId": null,
-        "cleanSession": true,
+
         "topics": {
             "readPower": "",
             "writeCommand": null,
             "inverterStatus": null
         },
+
         "auth": {
             "username": null,
             "password": null
         }
     },
+
     "command": {
         "target": 0,
         "minPower": 0,
@@ -26,11 +27,13 @@
         "hysteresis": 0.0,
         "retransmit": 0
     },
+
     "reading": {
         "offset": 0,
         "smoothing": null,
         "smoothingSampleSize": 0
     },
+
     "meta": {
         "prefix": "solarexportcontrol",
         "resetInverterLimitOnInactive": true,
@@ -51,9 +54,8 @@
 
         }
     },
+    
     "customize": {
-        "status": {},
-        "calibration": {},
         "command": {}
     }
 }

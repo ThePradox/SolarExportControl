@@ -35,9 +35,10 @@ class LimitCalculator:
         self.last_command_time: datetime = datetime.min
         self.last_limit_value: float = config.command.min_power
         self.last_limit_has: bool = False
+        self.is_calibrated: bool = False
         self.limit_max: float = config.command.max_power
         self.limit_min: float = config.command.min_power
-
+        
         deqSize: int = self.config.reading.smoothingSampleSize if self.config.reading.smoothingSampleSize > 0 else 1
 
         sampleFunc: Callable[[float], float]
@@ -54,26 +55,26 @@ class LimitCalculator:
 
         self.__samples: Deque[float] = deque([], maxlen=deqSize)
 
+    def set_last_limit(self, limit: float) -> None:
+        self.last_limit_value = float(limit)
+        self.last_limit_has = True
+
     def add_reading(self, reading: float) -> LimitCalculatorResult:
         r = self.__add_reading(reading)
         self.__log_result(r)
         return r
 
     def __add_reading(self, reading: float) -> LimitCalculatorResult:
-        is_calibration = False
+        is_calibration = not self.is_calibrated
         is_throttled = False
         is_hysteresis_suppressed = False
         is_retransmit = False
 
         sample = self.__sampleReading(reading)
         
-        if not self.last_limit_has:
-            logging.debug(f"First reading. Calibrate...")
-            self.last_limit_value = self.__get_calibration()
-            self.last_limit_has = True
-            is_calibration = True
-            logging.debug(f"Calibration value is: {self.last_limit_value}")
-
+        if not self.last_limit_has:     
+            self.set_last_limit(float(self.limit_max))    
+                
         elapsed = round((datetime.now() - self.last_command_time).total_seconds(), 2)
         overshoot = self.__convert_reading_to_relative_overshoot(sample)
         limit = self.__convert_overshot_to_limit(overshoot)
@@ -97,8 +98,11 @@ class LimitCalculator:
 
         if not (is_throttled or is_hysteresis_suppressed):
             command = self.__convert_to_command(limit)
-            self.last_command_time = datetime.now()
-            self.last_limit_value = limit
+            self.last_command_time = datetime.now()           
+            self.set_last_limit(limit)
+
+            if is_calibration:
+                self.is_calibrated = True
 
         return LimitCalculatorResult(reading=reading,
                                      sample=sample,
@@ -120,19 +124,10 @@ class LimitCalculator:
     def reset(self) -> None:
         self.__samples.clear()
         self.last_command_time: datetime = datetime.min
-        self.last_limit_value: float = float(0)
+        self.last_limit_value: float = self.config.command.min_power
         self.last_limit_has: bool = False
+        self.is_calibrated: bool = False
         logging.debug("Limit context was reseted")
-
-    def __get_calibration(self) -> float:
-        try:
-            val = customize.calibrate(self.config.customize.calibration)
-            if val is not None:
-                return self.__cap_limit(val)
-        except Exception as ex:
-            logging.warning(f"customize.calibrate threw exception: {ex}")
-
-        return float(self.limit_max)
 
     def __get_smoothing_avg(self, reading: float) -> float:
         self.__samples.append(reading)

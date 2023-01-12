@@ -5,6 +5,7 @@ from core.limit import LimitCalculator
 from core.helper import AppMqttHelper
 from typing import Any
 
+SETUP_MODE_DURATION = 10
 
 class ExportControlAgent:
     def __init__(self, config: appconfig.AppConfig, mqtt_log: bool = False) -> None:
@@ -21,7 +22,7 @@ class ExportControlAgent:
 
         self.__setup_mode: bool = True
         self.__meta_status: bool = True
-        self.__inverter_status: bool = self.__get_inverter_status_init()
+        self.__inverter_status: bool = True
         self.__published_discovery = False
 
 # region Events
@@ -64,14 +65,13 @@ class ExportControlAgent:
         return customize.parse_inverter_status_payload(payload, self.__inverter_status)
 
     def __start_setup_mode(self) -> None:
-        self.__setup_mode = True
-        setup_mode_duration = 2
-        logging.debug(f"Setup mode start: Waiting {setup_mode_duration}s for potential retained messages to arrive...")
-        self.helper.schedule(2, self.__stop_setup_mode)
+        self.__setup_mode = True    
+        logging.info(f"Setup mode start: Waiting {SETUP_MODE_DURATION}s for potential retained messages to arrive...")
+        self.helper.schedule(SETUP_MODE_DURATION, self.__stop_setup_mode)
 
     def __stop_setup_mode(self) -> None:
         self.__setup_mode = False
-        logging.debug("Setup mode end")
+        logging.info("Setup mode end")
         self.__set_status(meta_status=None, inverter_status=None, force=True)
 
     def __set_status(self, meta_status: bool | None = None, inverter_status: bool | None = None, force: bool = False) -> None:
@@ -108,19 +108,6 @@ class ExportControlAgent:
             self.helper.unsubscribe_power_reading()
             if not meta_status and not meta_status_retr and self.config.meta.reset_inverter_on_inactive and self.__inverter_status:
                 self.__send_command(self.limitcalc.get_command_max())
-
-    def __get_inverter_status_init(self) -> bool:
-        if not self.helper.has_inverter_status:
-            return True
-
-        status = True
-
-        try:
-            status = customize.get_status_init(self.config.customize.status)
-        except Exception as ex:
-            logging.warning(f"customize.get_status_init failed: {ex}")
-
-        return status
 
     def __send_command(self, command: float) -> None:
         try:

@@ -55,9 +55,7 @@ class ConfigWizard:
             port=port,
             keepalive=None,
             protocol=protocol,
-            retain=False,
             client_id=client_id,
-            clean_session=True,
             topics=config_topics,
             auth=config_auth
         )
@@ -101,7 +99,7 @@ class ConfigWizard:
             cmd=config_command,
             reading=config_reading,
             meta=config_meta,
-            customize=appconfig.CustomizeConfig({}, {}, {}))
+            customize=appconfig.CustomizeConfig({}))
 
         self.__prompt_outfile(config_app)
         input("Press <ENTER> to exit.")

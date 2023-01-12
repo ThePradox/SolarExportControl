@@ -74,17 +74,13 @@ class MqttConfig:
                  port: int | None = None,
                  keepalive: int | None = None,
                  protocol: int | None = None,
-                 retain: bool | None = None,
-                 client_id: str | None = None,
-                 clean_session: bool | None = None,
+                 client_id: str | None = None,          
                  auth: MqttAuthConfig | None = None) -> None:
         self.host: str = host
         self.port: int = port if port is not None else 1883
         self.keepalive: int = keepalive if keepalive is not None else 60
-        self.protocol: int = protocol if protocol is not None else mqtt.MQTTv311
-        self.retain: bool = retain if retain is not None else False
+        self.protocol: int = protocol if protocol is not None else mqtt.MQTTv311      
         self.client_id: str = client_id if client_id is not None else "solar-export-control"
-        self.clean_session = clean_session if clean_session is not None else True
         self.topics: MqttTopicConfig = topics
         self.auth: MqttAuthConfig | None = auth
 
@@ -95,9 +91,7 @@ class MqttConfig:
             "port": self.port,
             "keepalive": self.keepalive,
             "protocol": self.protocol,
-            "retain": self.retain,
             "clientId": self.client_id,
-            "cleanSession": self.clean_session,
             "topics": self.topics.to_json(),
             "auth": self.auth.to_json() if self.auth is not None else None
         }
@@ -112,9 +106,7 @@ class MqttConfig:
         j_port: int | None = None
         j_keepalive: int | None = None
         j_protocol: int | None = None
-        j_retain: bool | None = None
         j_client_id: str | None = None
-        j_clean_session: bool | None = None
 
         t = json.get("port")
         if type(t) is int and t > 0:
@@ -128,17 +120,9 @@ class MqttConfig:
         if type(t) is int:
             j_protocol = t
 
-        t = json.get("retain")
-        if type(t) is bool:
-            j_retain = t
-
         t = json.get("clientId")
         if type(t) is str:
             j_client_id = t
-
-        t = json.get("cleanSession")
-        if type(t) is bool:
-            j_clean_session = t
 
         j_topics = json.get("topics")
         if type(j_topics) is not dict:
@@ -156,9 +140,7 @@ class MqttConfig:
                           port=j_port,
                           keepalive=j_keepalive,
                           protocol=j_protocol,
-                          retain=j_retain,
                           client_id=j_client_id,
-                          clean_session=j_clean_session,
                           auth=o_auth)
 
 
@@ -340,35 +322,21 @@ class ReadingConfig:
 
 
 class CustomizeConfig:
-    def __init__(self, status: dict, calibration: dict, command: dict) -> None:
-        self.status = status
-        self.calibration = calibration
+    def __init__(self, command: dict) -> None:
         self.command = command
 
     def to_json(self) -> dict:
-        return {
-            "status": self.status,
-            "calibration": self.calibration,
+        return {        
             "command": self.command
         }
 
     @staticmethod
     def from_json(json: dict) -> CustomizeConfig:
-        j_status = json.get("status")
-
-        if type(j_status) is not dict:
-            j_status = {}
-
-        j_calib = json.get("calibration")
-
-        if type(j_calib) is not dict:
-            j_calib = {}
-
         j_command = json.get("command")
         if type(j_command) is not dict:
             j_command = {}
 
-        return CustomizeConfig(status=j_status, calibration=j_calib, command=j_command)
+        return CustomizeConfig(command=j_command)
 
 
 class MetaControlConfig:

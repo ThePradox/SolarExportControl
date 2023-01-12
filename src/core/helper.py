@@ -35,7 +35,7 @@ class MqttHelper:
         self.__on_connect_error = None
         self.__on_disconnect = None
 
-        vers_clean_session = config.mqtt.clean_session
+        vers_clean_session = True
 
         if config.mqtt.protocol == mqtt.MQTTv5:
             vers_clean_session = None
@@ -110,7 +110,7 @@ class MqttHelper:
         vers_clean_start = mqtt.MQTT_CLEAN_START_FIRST_ONLY
 
         if self.config.mqtt.protocol == mqtt.MQTTv5:
-            vers_clean_start = self.config.mqtt.clean_session
+            vers_clean_start = True
 
         self.client.connect(host=self.config.mqtt.host,
                             port=self.config.mqtt.port,
@@ -496,7 +496,7 @@ class AppMqttHelper(MetaControlHelper):
 
     def publish_command(self, command: str) -> None:
         if self.config.mqtt.topics.write_command:
-            r = self.publish(self.config.mqtt.topics.write_command, command, 0, self.config.mqtt.retain)
+            r = self.publish(self.config.mqtt.topics.write_command, command, 0, False)
             logging.info(f"Published command: '{command}', Result: '{r}'")
 
     def subscribe_power_reading(self) -> None:
