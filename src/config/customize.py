@@ -15,22 +15,14 @@ def parse_power_payload(payload: bytes, command_min: float, command_max: float) 
     return None
 
 # Convert calculated new limit to mqtt payload
-def command_to_payload(command: float, command_min: float, command_max: float) -> str | None:
+def command_to_payload(command: float, command_type: int, command_min: float, command_max: float) -> str | None:
     return f"{round(command,2):.2f}"
 
 # Send your command to anywhere
-def command_to_generic(command: float, command_min: float, command_max: float, config:dict) -> None:
+def command_to_generic(command: float, command_type: int, command_min: float, command_max: float, config:dict) -> None:
     pass
 
-# Get initial inverter status (True = Active / False = Inactive)
-def get_status_init(config: dict) -> bool:
-    return True
-
 # Convert ongoing status update payload to bool (True = Active /False = Inactive)
-def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
+def parse_inverter_status_payload(payload: bytes, current_status: bool) -> bool | None:
     s = payload.decode().lower()
     return s == "1" or s == "true"
-
-# Get a value thats as near as possible to current inverter power production
-def calibrate(config: dict) -> float | None:
-    return None

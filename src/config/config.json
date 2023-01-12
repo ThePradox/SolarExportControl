@@ -1,39 +1,61 @@
 {
     "mqtt": {
         "host": "",
-        "port": null,
-        "keepalive": null,
-        "protocol": null,
-        "retain": null,
+        "port": 1883,
+        "keepalive": 60,
+        "protocol": 4,   
         "clientId": null,
-        "cleanSession": true,
+
         "topics": {
             "readPower": "",
-            "writeLimit": null,
-            "status": null
+            "writeCommand": null,
+            "inverterStatus": null
         },
+
         "auth": {
-            "username": "",
+            "username": null,
             "password": null
         }
     },
+
     "command": {
         "target": 0,
         "minPower": 0,
         "maxPower": 1200,
         "type": "relative",
         "throttle": 5,
-        "minDiff": 0.0,
+        "hysteresis": 0.0,
         "retransmit": 0
     },
+
     "reading": {
         "offset": 0,
         "smoothing": null,
         "smoothingSampleSize": 0
     },
+
+    "meta": {
+        "prefix": "solarexportcontrol",
+        "resetInverterLimitOnInactive": true,
+
+        "telemetry": {
+            "power": true,
+            "sample": true,
+            "overshoot": true,
+            "limit": true,
+            "command": true
+        },
+
+        "homeAssistantDiscovery": {
+            "enabled": true,
+            "discoveryPrefix": "homeassistant",
+            "id": 1,
+            "name": "SEC"
+
+        }
+    },
+    
     "customize": {
-        "status": {},
-        "calibration": {},
         "command": {}
     }
 }
