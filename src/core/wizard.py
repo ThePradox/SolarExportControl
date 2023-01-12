@@ -316,9 +316,11 @@ class ConfigWizard:
             val_res = validator(in_str)
 
             if val_res[0]:
+                print("")
                 return val_res[1]
 
             print("Invalid input!")
+            print("")
 
     @staticmethod
     def __vali_req_bool(input: str) -> Tuple[bool, bool]:
