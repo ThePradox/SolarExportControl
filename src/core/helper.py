@@ -3,6 +3,8 @@ import datetime
 import time
 import core.appconfig as appconfig
 from paho.mqtt import client as mqtt
+from paho.mqtt.properties import Properties
+from paho.mqtt.packettypes import PacketTypes 
 from typing import Callable, Any, List, Tuple
 
 
@@ -108,14 +110,18 @@ class MqttHelper:
 
     def connect(self) -> None:
         vers_clean_start = mqtt.MQTT_CLEAN_START_FIRST_ONLY
+        properties = None
 
         if self.config.mqtt.protocol == mqtt.MQTTv5:
             vers_clean_start = True
+            properties=Properties(PacketTypes.CONNECT)
+            properties.SessionExpiryInterval=0
 
         self.client.connect(host=self.config.mqtt.host,
                             port=self.config.mqtt.port,
                             keepalive=self.config.mqtt.keepalive,
-                            clean_start=vers_clean_start)
+                            clean_start=vers_clean_start,
+                            properties=properties)
 
         logging.info("Connecting ...")
 
