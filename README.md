@@ -81,11 +81,11 @@ You must at least check 2 things:
 
 **1. What data is my power meter sending?**
 
-This application needs the value as a number, but your power meter may publish json or an other arbitrary payload. You must edit the `parse_power_payload` function to convert the payload to a number. See [customize](./docs/Customize.md#required-parse_power_payload) for examples.
+This application needs the value as a number, but your power meter may publish json or an other arbitrary payload. You must edit the `parse_power_payload` function to convert the payload to a number. See ['parse_power_payload'](./docs/Customize.md#required-parse_power_payload) for examples.
 
 **2. How should the calculated limit be formated before publishing it?**
 
-Maybe your inverter wants the new limit as json? For most people it will be as easy as rounding to 2 decimal places. You must edit the `command_to_payload` function to convert the new limit command to your desired payload. See [customize](./docs/Customize.md#required-command_to_payload)
+Maybe your inverter wants the new limit as json? For most people it will be as easy as rounding to 2 decimal places. You must edit the `command_to_payload` function to convert the new limit command to your desired payload. See ['command_to_payload '](./docs/Customize.md#required-command_to_payload)
 
 ## How to run
 

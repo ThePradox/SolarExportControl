@@ -4,13 +4,18 @@ import requests
 # Example payload: {"Time": "2022-10-20T20:58:13", "em": {"power_total": 230.04 }}
 # Convert ongoing power reading payload to float (negative = export)
 def parse_power_payload(payload: bytes, command_min: float, command_max: float) -> float | None:
+    tasmota_device = "em"
+    tasmota_value = "power_total"
+
     jobj = json.loads(payload)
-    if "em" in jobj:
-        em_jobj = jobj["em"]
-        if "power_total" in em_jobj:
-            value = em_jobj["power_total"]
+    if tasmota_device in jobj:
+        em_jobj = jobj[tasmota_device]
+        if tasmota_value in em_jobj:
+            value = em_jobj[tasmota_value]
             if isinstance(value, float):
                 return value
+            elif isinstance(value, int):
+                return float(value)
 
     return None
 

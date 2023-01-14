@@ -11,9 +11,9 @@ def parse_power_payload(payload: bytes, command_min: float, command_max: float) 
 
 This function must be edited to return the power reading as `float`. Return `None` to discard the reading
 
-<details><summary>Example 1</summary>
+<details><summary>Example 1: Tasmota</summary>
 
-Payload comes from tasmota while the device name is set to "em":
+Payload comes from tasmota while the device name is set to "em" and the value to "power_total":
 
 Payload:
 
@@ -25,13 +25,18 @@ Function
 
 ```python
 def parse_power_payload(payload: bytes, command_min: float, command_max: float) -> float | None:
+    tasmota_device = "em"
+    tasmota_value = "power_total"
+
     jobj = json.loads(payload)
-    if "em" in jobj:
-        em_jobj = jobj["em"]
-        if "power_total" in em_jobj:
-            value = em_jobj["power_total"]
+    if tasmota_device in jobj:
+        em_jobj = jobj[tasmota_device]
+        if tasmota_value in em_jobj:
+            value = em_jobj[tasmota_value]
             if isinstance(value, float):
                 return value
+            elif isinstance(value, int):
+                return float(value)
 
     return None
 ```
