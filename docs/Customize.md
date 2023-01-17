@@ -93,9 +93,9 @@ def command_to_payload(command: float, command_type: int, command_min: float, co
 def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
 ```
 
-Only required if `config.mqtt.topics.status` is not empty
+Only required if `config.mqtt.topics.inverterStatus` is not empty
 
-This function can be be edited to return the status from the payload of `config.mqtt.topics.status` as `bool` (True=Active / False=Inactive). Return `None` to discard message
+This function can be be edited to return the status from the payload of `config.mqtt.topics.inverterStatus` as `bool` (True=Active / False=Inactive). Return `None` to discard message
 
 <details><summary>Example</summary>
 
@@ -109,7 +109,6 @@ def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
 
 </details>
 
-
 ## Optional: `command_to_generic`
 
 ```python
@@ -120,3 +119,24 @@ def command_to_generic(command: float, command_type: int, command_min: float, co
 This function will get called whenever a command would be published on `config.mqtt.topics.writeCommand`.
 The whole `config.customize.command` object is passed as parameter.
 Send the limit over http, sql or whatever, go wild.
+
+## Optional: `parse_inverter_power_payload`
+
+```python
+# Convert ongoing inverter power production payload to float
+def parse_inverter_power_payload(payload: bytes)-> float | None:
+```
+
+Only required if `config.mqtt.topics.inverterPower` is not empty.
+
+This function can be edited to return the current inverter power als `float`. Return `None` to discard value
+
+<details><summary>Example</summary>
+
+Convert simple number string to float
+
+```python
+def parse_inverter_power_payload(payload: bytes)-> float | None:
+    s = payload.decode()
+    return float(s)
+```
