@@ -9,7 +9,8 @@
         "topics": {
             "readPower": "",
             "writeCommand": null,
-            "inverterStatus": null
+            "inverterStatus": null,
+            "inverterPower": null
         },
 
         "auth": {
@@ -25,7 +26,8 @@
         "type": "relative",
         "throttle": 5,
         "hysteresis": 0.0,
-        "retransmit": 0
+        "retransmit": 0,
+        "defaultLimit": null
     },
 
     "reading": {
@@ -37,7 +39,7 @@
     "meta": {
         "prefix": "solarexportcontrol",
         "resetInverterLimitOnInactive": true,
-
+        
         "telemetry": {
             "power": true,
             "sample": true,
@@ -50,11 +52,10 @@
             "enabled": true,
             "discoveryPrefix": "homeassistant",
             "id": 1,
-            "name": "SEC"
-
+            "name": "SEC"        
         }
     },
-    
+
     "customize": {
         "command": {}
     }
