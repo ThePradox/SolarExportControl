@@ -47,9 +47,10 @@ class ConfigWizard:
         topic_read_power = self.__prompt_topic_read_power()
         interval = self.__prompt_interval()
         topic_write_command = self.__prompt_topic_write_command()
-        topic_status = self.__prompt_topic_read_status()
+        topic_inv_status = self.__prompt_topic_inverter_status()
+        topic_inv_power = self.__prompt_topic_inverter_power()
 
-        config_topics = appconfig.MqttTopicConfig(topic_read_power, topic_write_command, topic_status)
+        config_topics = appconfig.MqttTopicConfig(topic_read_power, topic_write_command, topic_inv_status, topic_inv_power)
         config_mqtt = appconfig.MqttConfig(
             host=host,
             port=port,
@@ -73,7 +74,8 @@ class ConfigWizard:
             type=command_type,
             throttle=command_throttle,
             hysteresis=command_hysteresis,
-            retransmit=0
+            retransmit=0,
+            default_limit=command_max_power
         )
 
         reading_smoothing = self.__prompt_reading_smoothing(interval)
@@ -169,24 +171,28 @@ class ConfigWizard:
         return self.__prompt_input(prompt, self.__vali_req_bool)
 
     def __prompt_auth_user(self) -> str:
-        prompt = "Authentication: Enter authentication username:\n"
+        prompt = "Authentication: Enter username:\n"
         return self.__prompt_input(prompt, self.__vali_req_str)
 
     def __prompt_auth_pw(self) -> str | None:
-        prompt = "Authentication: Enter authentication password (leave empty if not required):\n"
+        prompt = "Authentication: [Optional] Enter password (leave empty if not required):\n"
         return self.__prompt_input(prompt, lambda x: (True, x if x != "" else None))
 
     def __prompt_topic_read_power(self) -> str:
         prompt = "Topics: Enter mqtt topic to read current power draw from:\n"
-        return self.__prompt_input(prompt, self.__vali_req_str)
+        return self.__prompt_input(prompt, lambda x: self.__vali_req_str(x.strip()))
 
     def __prompt_topic_write_command(self) -> str | None:
-        prompt = "Topics: Enter mqtt topic to write the inverter limit command to.\nLeave empty if you do not want to (or can) limit your inverter with mqtt.\n"
+        prompt = "Topics: Enter mqtt topic to write the inverter limit command to:\n"
+        return self.__prompt_input(prompt, lambda x: self.__vali_req_str(x.strip()))
+
+    def __prompt_topic_inverter_status(self) -> str | None:
+        prompt = "Topics: [Optional] Enter mqtt topic to read the ongoing inverter status (is producing) from.\nThis allows to sleep when the inverter is not producing.\nLeave empty to deactivate this feature.\n"
         return self.__prompt_input(prompt, lambda x: (True, x.strip() if x.strip() != "" else None))
 
-    def __prompt_topic_read_status(self) -> str | None:
-        prompt = "Topics: Enter mqtt topic to read the ongoing inverter status (is producing) from.\nLeave empty if you do not want to pause when the inverter is not producing.\n"
-        return self.__prompt_input(prompt, lambda x: (True, x.strip() if x.strip() != "" else None))
+    def __prompt_topic_inverter_power(self) -> str | None:
+        prompt = "Topics: [Optional] Enter mqtt topic to read the ongoing inverter power production from.\nThis allows for faster limit adjustment.\nLeave empty to deactivate this feature.\n"
+        return self.__prompt_input(prompt, lambda x: (True, x.strip() if x.strip() != "" else None))    
 
     def __prompt_command_max_power(self) -> int:
         prompt = "Core: Enter the max power output (AC) of your inverter in watts:\n"
@@ -241,7 +247,7 @@ class ConfigWizard:
                 return (appconfig.PowerReadingSmoothingType.NONE, 0)
 
     def __prompt_telemetry(self) -> appconfig.MetaTelemetryConfig:
-        prompt = "Telemetry: What level of telemetry should be writen to mqtt (and therefore the home assistant integration)?\n"
+        prompt = "Telemetry: What level of telemetry should be written to mqtt (and therefore the home assistant integration)?\n"
         prompt += "[1]: None\n"
         prompt += "[2]: Basic (Sample, Limit, Overshoot)\n"
         prompt += "[3]: Full (Power, Sample, Overshoot, Limit, Command)\n"

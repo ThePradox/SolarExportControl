@@ -211,6 +211,7 @@ class MetaControlHelper(MqttHelper):
         self.__on_cmd_enabled: Callable[[bool], None] | None = None
         self.has_discovery = False
         self.has_inverter_status = bool(config.mqtt.topics.inverter_status)
+        self.has_inverter_power = bool(config.mqtt.topics.inverter_power)
 
         if config.meta.discovery.enabled:
             self.has_discovery = True
@@ -448,6 +449,7 @@ class AppMqttHelper(MetaControlHelper):
         super().__init__(config, loglvl, mqttLogging)
         self.__on_power_reading: Callable[[float], None] | None = None
         self.__on_inverter_status: Callable[[bool], None] | None = None
+        self.__on_inverter_power: Callable[[float], None] | None = None
 
     def on_power_reading(self, callback: Callable[[float], None] | None, parser: Callable[[bytes], float | None]) -> None:
         self.__on_power_reading = callback
@@ -469,6 +471,18 @@ class AppMqttHelper(MetaControlHelper):
             self.client.message_callback_remove(self.config.mqtt.topics.inverter_status)
         else:
             self.client.message_callback_add(self.config.mqtt.topics.inverter_status, self.__proxy_on_inverter_status)
+
+    def on_inverter_power(self, callback: Callable[[float], None] | None, parser: Callable[[bytes], float | None]) -> None:
+        if not bool(self.config.mqtt.topics.inverter_power):
+            return
+
+        self.__on_inverter_power = callback
+        self.__parser_inverter_power = parser
+
+        if callback is None:
+            self.client.message_callback_remove(self.config.mqtt.topics.inverter_power)
+        else:
+            self.client.message_callback_add(self.config.mqtt.topics.inverter_power, self.__proxy_on_inverter_power)
 
     def __proxy_on_power_reading(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None) -> None:
         if self.__on_power_reading is None:
@@ -500,6 +514,21 @@ class AppMqttHelper(MetaControlHelper):
         if value is not None:
             self.__on_inverter_status(value)
 
+    def __proxy_on_inverter_power(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage, props=None) -> None:
+        if self.__on_inverter_power is None or not self.has_inverter_power:
+            return
+
+        try:
+            value = self.__parser_inverter_power(msg.payload)
+        except Exception as ex:
+            logging.warning(f"Failed to parse inverter power: {ex}")
+            return
+
+        self.received_message(msg, "inverter-power", value)
+
+        if value is not None:
+            self.__on_inverter_power(value)
+
     def publish_command(self, command: str) -> None:
         if self.config.mqtt.topics.write_command:
             r = self.publish(self.config.mqtt.topics.write_command, command, 0, False)
@@ -519,6 +548,13 @@ class AppMqttHelper(MetaControlHelper):
         if self.has_inverter_status and self.config.mqtt.topics.inverter_status:
             self.unsubscribe(self.config.mqtt.topics.inverter_status)
 
+    def subscribe_inverter_power(self) -> None:
+        if self.has_inverter_power and self.config.mqtt.topics.inverter_power:
+            self.subscribe(self.config.mqtt.topics.inverter_power, 0)
+
+    def unsubscribe_inverter_power(self) -> None:
+        if self.has_inverter_power and self.config.mqtt.topics.inverter_power:
+            self.unsubscribe(self.config.mqtt.topics.inverter_power)
 
 class ActionScheduler:
     def __init__(self) -> None:

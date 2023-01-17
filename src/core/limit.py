@@ -2,10 +2,11 @@ import logging
 import statistics
 import core.appconfig as appconfig
 import config.customize as customize
-from typing import Deque, Callable
+from typing import Deque, Callable, Tuple
 from collections import deque
 from datetime import datetime
 
+THRESHOLD_HINT_AGE = float(5)
 
 # target: configured power target (config.command.target)
 # reading: parsed value from mqtt read power topic
@@ -27,7 +28,7 @@ class LimitCalculatorResult:
         self.is_hysteresis_suppressed: bool = is_hysteresis_suppressed
         self.is_retransmit: bool = is_retransmit
         self.elapsed: float = elapsed
-
+       
 
 class LimitCalculator:
     def __init__(self, config: appconfig.AppConfig) -> None:
@@ -38,6 +39,8 @@ class LimitCalculator:
         self.is_calibrated: bool = False
         self.limit_max: float = config.command.max_power
         self.limit_min: float = config.command.min_power
+        self.limit_default: float = config.command.default_limit
+        self.production_hint: Tuple[float, datetime] | None = None
         
         deqSize: int = self.config.reading.smoothingSampleSize if self.config.reading.smoothingSampleSize > 0 else 1
 
@@ -54,6 +57,22 @@ class LimitCalculator:
             self.__sampleReading = sampleFunc
 
         self.__samples: Deque[float] = deque([], maxlen=deqSize)
+
+    def set_production_hint(self, production: float)-> None:
+        self.production_hint = (production, datetime.now())
+
+    def __get_production_hint(self) -> float | None:
+        if self.production_hint is None:
+            return None
+
+        hint = self.production_hint
+        self.production_hint = None
+
+        if (datetime.now() - hint[1]).total_seconds() > THRESHOLD_HINT_AGE:
+            # Hint is to old, discard
+            return None
+
+        return hint[0]
 
     def set_last_limit(self, limit: float) -> None:
         self.last_limit_value = float(limit)
@@ -73,11 +92,12 @@ class LimitCalculator:
         sample = self.__sampleReading(reading)
         
         if not self.last_limit_has:     
-            self.set_last_limit(float(self.limit_max))    
+            self.set_last_limit(self.limit_default)    
                 
         elapsed = round((datetime.now() - self.last_command_time).total_seconds(), 2)
         overshoot = self.__convert_reading_to_relative_overshoot(sample)
-        limit = self.__convert_overshot_to_limit(overshoot)
+        limit = self.__convert_overshoot_to_limit(overshoot)
+        limit = self.__apply_production_hint(overshoot, limit)
 
         # Ignore conditions on calibration
         if not is_calibration:
@@ -115,11 +135,8 @@ class LimitCalculator:
                                      is_retransmit=is_retransmit,
                                      elapsed=elapsed)
 
-    def get_command_min(self) -> float:
-        return self.__convert_to_command(self.limit_min)
-
-    def get_command_max(self) -> float:
-        return self.__convert_to_command(self.limit_max)
+    def get_command_default(self) -> float:
+        return self.__convert_to_command(self.limit_default)
 
     def reset(self) -> None:
         self.__samples.clear()
@@ -127,6 +144,7 @@ class LimitCalculator:
         self.last_limit_value: float = self.config.command.min_power
         self.last_limit_has: bool = False
         self.is_calibrated: bool = False
+        self.production_hint = None
         logging.debug("Limit context was reseted")
 
     def __get_smoothing_avg(self, reading: float) -> float:
@@ -140,8 +158,18 @@ class LimitCalculator:
     def __convert_reading_to_relative_overshoot(self, reading: float) -> float:
         return (self.config.command.target - reading) * -1
 
-    def __convert_overshot_to_limit(self, overshoot: float) -> float:
+    def __convert_overshoot_to_limit(self, overshoot: float) -> float:
         return self.__cap_limit(self.last_limit_value + overshoot)
+
+    def __apply_production_hint(self, overshoot: float, limit: float) -> float:
+        hint = self.__get_production_hint()
+        if hint is None:
+            return limit
+        elif overshoot < 0 and hint < limit:
+            return hint
+        else:
+            return limit
+        
 
     def __hysteresis_threshold_breached(self, limit: float) -> bool:
         if self.config.command.hysteresis == 0:
