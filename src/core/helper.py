@@ -161,7 +161,7 @@ class MqttHelper:
             delay = delay_interval * attempt
             delay = delay_max if delay > delay_max else delay
             time.sleep(delay)
-            logging.info(f"[{attempt}]:Reconnecting ...")
+            logging.info(f"[{attempt}]: Reconnecting ...")
             self.client.reconnect()
 
 
