@@ -16,13 +16,14 @@ THRESHOLD_HINT_AGE = float(5)
 # command: value of limit in watts or percent, decided by config.command.type
 
 class LimitCalculatorResult:
-    def __init__(self, reading: float, sample: float, overshoot: float, limit: float, command: float | None,
+    def __init__(self, reading: float, sample: float, overshoot: float, limit: float, command: float | None, hint : float | None,
                  is_calibration: bool, is_throttled: bool, is_hysteresis_suppressed: bool, is_retransmit: bool, elapsed: float) -> None:
         self.reading: float = reading
         self.sample: float = sample
         self.overshoot: float = overshoot
         self.limit: float = limit
         self.command: float | None = command
+        self.hint: float | None = hint
         self.is_calibration: bool = is_calibration
         self.is_throttled: bool = is_throttled
         self.is_hysteresis_suppressed: bool = is_hysteresis_suppressed
@@ -97,7 +98,8 @@ class LimitCalculator:
         elapsed = round((datetime.now() - self.last_command_time).total_seconds(), 2)
         overshoot = self.__convert_reading_to_relative_overshoot(sample)
         limit = self.__convert_overshoot_to_limit(overshoot)
-        limit = self.__apply_production_hint(overshoot, limit)
+        hint = None
+        
 
         # Ignore conditions on calibration
         if not is_calibration:
@@ -117,6 +119,10 @@ class LimitCalculator:
         command: float | None = None
 
         if not (is_throttled or is_hysteresis_suppressed):
+            hint = self.__get_production_hint()
+            if hint is not None:
+                limit = self.__apply_production_hint(overshoot, limit, hint)
+
             command = self.__convert_to_command(limit)
             self.last_command_time = datetime.now()           
             self.set_last_limit(limit)
@@ -129,6 +135,7 @@ class LimitCalculator:
                                      overshoot=overshoot,
                                      limit=limit,
                                      command=command,
+                                     hint=hint,
                                      is_calibration=is_calibration,
                                      is_throttled=is_throttled,
                                      is_hysteresis_suppressed=is_hysteresis_suppressed,
@@ -161,8 +168,7 @@ class LimitCalculator:
     def __convert_overshoot_to_limit(self, overshoot: float) -> float:
         return self.__cap_limit(self.last_limit_value + overshoot)
 
-    def __apply_production_hint(self, overshoot: float, limit: float) -> float:
-        hint = self.__get_production_hint()
+    def __apply_production_hint(self, overshoot: float, limit: float, hint: float) -> float:      
         if hint is None:
             return limit
         elif overshoot < 0 and hint < limit:
@@ -200,6 +206,11 @@ class LimitCalculator:
         seg.append(f"Sample: {result.sample:>8.2f}")
         seg.append(f"Overshoot: {result.overshoot:>8.2f}")
         seg.append(f"Limit: {result.limit:>8.2f}")
+        
+        if result.hint is not None:
+            seg.append(f"Hint: {result.hint:>8.2f}")
+        else:
+            seg.append(f"Hint:     None")
 
         if result.command is not None:
             seg.append(f"Command: {result.command:>8.2f}")
