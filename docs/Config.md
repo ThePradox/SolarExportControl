@@ -16,7 +16,8 @@ Found in `/src/config/config.json`. Properties not required can be `null`
         "topics": {
             "readPower": "power/xxx-xxx-xxx/tele/SENSOR",
             "writeCommand": "solar/xxx/cmd/limit_nonpersistent_relative",
-            "inverterStatus": "solar/xxx/status/producing"
+            "inverterStatus": "solar/xxx/status/producing",
+            "inverterPower": "solar/xxx/0/power"
         },
 
         "auth": {
@@ -79,7 +80,8 @@ Setup mqtt broker authentication. **Will only be used If `username` is not empty
         "throttle": 6,
         "hysteresis": 24.0,
         "retransmit": 0,
-        "defaultLimit": null
+        "defaultLimit": null,
+        "hintMultiplier": 1.05
     },
 ...
 ```
@@ -88,16 +90,17 @@ Setup mqtt broker authentication. **Will only be used If `username` is not empty
 
 Setup how commands will be issued
 
-|Req                | Property               | Type             | Unit          | Description
-|---                | ---                    | ---              |---            |---
-| :red_circle:      | `command.target`       | int              | Watt (W)      | power consumption this app will use as target. Typical values are `0` (Zero Export) or `-600` (in Germany "Balkonkraftwerk")
-| :red_circle:      | `command.minPower`     | int              | Watt (W)      | the lower power limit the inverter can be set to
-| :red_circle:      | `command.maxPower`     | int              | Watt (W)      | the upper power limit the inverter can be set to
-| :red_circle:      | `command.type`         | string: "absolute" or "relative"|| controls wether the limit command is absolute in watts (W) or in relative percent of `command.maxPower`
-| :red_circle:      | `command.throttle`     | int              | Seconds (s)   | minimum amount of time that must pass after a limit command has been issued before a new one can be issued. Use `0` to disable
-| :red_circle:      | `command.hysteresis`   | number           | Watt (W)      | minimum threshold that must been reached after a limit command has been issued before a new one can be issued. Use `0.00` to disable
-| :red_circle:      | `command.retransmit`   | int              | Seconds       | time after which `command.hysteresis` is ignored to retransmit the limit command. Useful if commands can get 'lost' on the way to the inverter. Use `0` to disable
-|                   | `command.defaultLimit` | int              | Watt (W)      | default inverter limit which is used during startup as calibration and if `meta.resetInverterLimitOnInactive` is active
+|Req                | Property                 | Type             | Unit          | Description
+|---                | ---                      | ---              |---            |---
+| :red_circle:      | `command.target`         | int              | Watt (W)      | power consumption this app will use as target. Typical values are `0` (Zero Export) or `-600` (in Germany "Balkonkraftwerk")
+| :red_circle:      | `command.minPower`       | int              | Watt (W)      | the lower power limit the inverter can be set to
+| :red_circle:      | `command.maxPower`       | int              | Watt (W)      | the upper power limit the inverter can be set to
+| :red_circle:      | `command.type`           | string: "absolute" or "relative"|| controls wether the limit command is absolute in watts (W) or in relative percent of `command.maxPower`
+| :red_circle:      | `command.throttle`       | int              | Seconds (s)   | minimum amount of time that must pass after a limit command has been issued before a new one can be issued. Use `0` to disable
+| :red_circle:      | `command.hysteresis`     | number           | Watt (W)      | minimum threshold that must been reached after a limit command has been issued before a new one can be issued. Use `0.00` to disable
+| :red_circle:      | `command.retransmit`     | int              | Seconds       | time after which `command.hysteresis` is ignored to retransmit the limit command. Useful if commands can get 'lost' on the way to the inverter. Use `0` to disable
+|                   | `command.defaultLimit`   | int              | Watt (W)      | default inverter limit which is used during startup as calibration and if `meta.resetInverterLimitOnInactive` is active
+|                   | `command.hintMultiplier` | number           | Multiplier    | this value is multiplicated with the value of `mqtt.topics.inverterPower`. This is useful to finetune the difference between real production and the `inverterPower`. You can´t go wrong with at least 5% (1.05)
 
 <br />
 

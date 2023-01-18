@@ -42,7 +42,8 @@ class LimitCalculator:
         self.limit_min: float = config.command.min_power
         self.limit_default: float = config.command.default_limit
         self.production_hint: Tuple[float, datetime] | None = None
-        
+        self.production_hint_multiplier: float = config.command.hint_multiplier
+
         deqSize: int = self.config.reading.smoothingSampleSize if self.config.reading.smoothingSampleSize > 0 else 1
 
         sampleFunc: Callable[[float], float]
@@ -73,7 +74,7 @@ class LimitCalculator:
             # Hint is to old, discard
             return None
 
-        return hint[0]
+        return float(hint[0] * self.production_hint_multiplier)
 
     def set_last_limit(self, limit: float) -> None:
         self.last_limit_value = float(limit)

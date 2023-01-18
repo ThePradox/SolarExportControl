@@ -27,7 +27,8 @@
         "throttle": 5,
         "hysteresis": 0.0,
         "retransmit": 0,
-        "defaultLimit": null
+        "defaultLimit": null,
+        "hintMultiplier": 1.0
     },
 
     "reading": {
