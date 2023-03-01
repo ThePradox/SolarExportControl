@@ -16,8 +16,7 @@ Found in `/src/config/config.json`. Properties not required can be `null`
         "topics": {
             "readPower": "power/xxx-xxx-xxx/tele/SENSOR",
             "writeCommand": "solar/xxx/cmd/limit_nonpersistent_relative",
-            "inverterStatus": "solar/xxx/status/producing",
-            "inverterPower": "solar/xxx/0/power"
+            "inverterStatus": "solar/xxx/status/producing"
         },
 
         "auth": {
@@ -51,7 +50,6 @@ Setup mqtt topics
 | :red_circle:      | `topics.readPower`     | string            | MQTT-Topic to read current power draw
 |                   | `topics.writeCommand`  | string            | MQTT-Topic to write power limit command to
 |                   | `topics.inverterStatus`| string            | MQTT-Topic to listens for inverter status updates. This allows to sleep when the inverter is not producing
-|                   | `topics.inverterPower` | string            | MQTT-Topic to listens for inverter current inverter power. This allows for faster limit adjustment
 
 ### MQTT.AUTH Properties
 
@@ -80,8 +78,7 @@ Setup mqtt broker authentication. **Will only be used If `username` is not empty
         "throttle": 6,
         "hysteresis": 24.0,
         "retransmit": 0,
-        "defaultLimit": null,
-        "hintMultiplier": 1.05
+        "defaultLimit": null
     },
 ...
 ```
@@ -100,7 +97,6 @@ Setup how commands will be issued
 | :red_circle:      | `command.hysteresis`     | number           | Watt (W)      | minimum threshold that must been reached after a limit command has been issued before a new one can be issued. Use `0.00` to disable
 | :red_circle:      | `command.retransmit`     | int              | Seconds       | time after which `command.hysteresis` is ignored to retransmit the limit command. Useful if commands can get 'lost' on the way to the inverter. Use `0` to disable
 |                   | `command.defaultLimit`   | int              | Watt (W)      | default inverter limit which is used during startup as calibration and if `meta.resetInverterLimitOnInactive` is active
-|                   | `command.hintMultiplier` | number           | Multiplier    | this value is multiplicated with the value of `mqtt.topics.inverterPower`. This is useful to finetune the difference between real production and the `inverterPower`. You can´t go wrong with at least 5% (1.05)
 
 <br />
 

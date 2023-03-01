@@ -75,8 +75,7 @@ class ConfigWizard:
             throttle=command_throttle,
             hysteresis=command_hysteresis,
             retransmit=0,
-            default_limit=command_max_power,
-            hint_multiplier=1.05
+            default_limit=command_max_power
         )
 
         reading_smoothing = self.__prompt_reading_smoothing(interval)
