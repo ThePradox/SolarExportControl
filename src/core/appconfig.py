@@ -155,8 +155,8 @@ class MqttTopicConfig:
         return {
             "readPower": str(self.read_power),
             "writeCommand": self.write_command,
-            "inverterStatus": self.inverter_status,
-            "inverterPower": self.inverter_power
+            "inverterStatus": self.inverter_status
+           # "inverterPower": self.inverter_power
         }
 
     @staticmethod
@@ -205,7 +205,7 @@ class MqttAuthConfig:
 
 
 class CommandConfig:
-    def __init__(self, target: int, min_power: float, max_power: float, type: InverterCommandType, throttle: int, hysteresis: float, retransmit: int, default_limit: float, hint_multiplier: float) -> None:
+    def __init__(self, target: int, min_power: float, max_power: float, type: InverterCommandType, throttle: int, hysteresis: float, retransmit: int, default_limit: float) -> None:
         self.target: int = target
         self.min_power: float = min_power
         self.max_power: float = max_power
@@ -214,8 +214,7 @@ class CommandConfig:
         self.hysteresis: float = hysteresis
         self.retransmit: int = retransmit
         self.default_limit: float = default_limit
-        self.hint_multiplier: float = hint_multiplier
-
+      
     def to_json(self) -> dict:
         match self.type:
             case InverterCommandType.ABSOLUTE:
@@ -233,8 +232,7 @@ class CommandConfig:
             "throttle": int(self.throttle),
             "hysteresis": float(self.hysteresis),
             "retransmit": int(self.retransmit),
-            "defaultLimit": float(self.default_limit),
-            "hintMultiplier": float(self.hint_multiplier)
+            "defaultLimit": float(self.default_limit)
         }
 
     @staticmethod
@@ -289,12 +287,6 @@ class CommandConfig:
         elif type(j_default_limit) is not float:
             j_default_limit = j_max_power
 
-        j_hint_multi = json.get("hintMultiplier")
-        if type(j_hint_multi) is int:
-            j_hint_multi = float(j_hint_multi)
-        elif type(j_hint_multi) is not float:
-            j_hint_multi = float(1.0)
-
         return CommandConfig(
             target=j_target,
             min_power=j_min_power,
@@ -303,8 +295,7 @@ class CommandConfig:
             throttle=j_throttle,
             hysteresis=j_hysteresis,
             retransmit=j_retransmit,
-            default_limit=j_default_limit,
-            hint_multiplier=j_hint_multi
+            default_limit=j_default_limit
         )
 
 

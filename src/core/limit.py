@@ -6,8 +6,6 @@ from typing import Deque, Callable, Tuple
 from collections import deque
 from datetime import datetime
 
-THRESHOLD_HINT_AGE = float(5)
-
 # target: configured power target (config.command.target)
 # reading: parsed value from mqtt read power topic
 # sample: reading with applied smoothing if turned on
@@ -16,14 +14,13 @@ THRESHOLD_HINT_AGE = float(5)
 # command: value of limit in watts or percent, decided by config.command.type
 
 class LimitCalculatorResult:
-    def __init__(self, reading: float, sample: float, overshoot: float, limit: float, command: float | None, hint : float | None,
+    def __init__(self, reading: float, sample: float, overshoot: float, limit: float, command: float | None,
                  is_calibration: bool, is_throttled: bool, is_hysteresis_suppressed: bool, is_retransmit: bool, elapsed: float) -> None:
         self.reading: float = reading
         self.sample: float = sample
         self.overshoot: float = overshoot
         self.limit: float = limit
-        self.command: float | None = command
-        self.hint: float | None = hint
+        self.command: float | None = command      
         self.is_calibration: bool = is_calibration
         self.is_throttled: bool = is_throttled
         self.is_hysteresis_suppressed: bool = is_hysteresis_suppressed
@@ -41,8 +38,6 @@ class LimitCalculator:
         self.limit_max: float = config.command.max_power
         self.limit_min: float = config.command.min_power
         self.limit_default: float = config.command.default_limit
-        self.production_hint: Tuple[float, datetime] | None = None
-        self.production_hint_multiplier: float = config.command.hint_multiplier
 
         deqSize: int = self.config.reading.smoothingSampleSize if self.config.reading.smoothingSampleSize > 0 else 1
 
@@ -59,22 +54,6 @@ class LimitCalculator:
             self.__sampleReading = sampleFunc
 
         self.__samples: Deque[float] = deque([], maxlen=deqSize)
-
-    def set_production_hint(self, production: float)-> None:
-        self.production_hint = (production, datetime.now())
-
-    def __get_production_hint(self) -> float | None:
-        if self.production_hint is None:
-            return None
-
-        hint = self.production_hint
-        self.production_hint = None
-
-        if (datetime.now() - hint[1]).total_seconds() > THRESHOLD_HINT_AGE:
-            # Hint is to old, discard
-            return None
-
-        return float(hint[0] * self.production_hint_multiplier)
 
     def set_last_limit(self, limit: float) -> None:
         self.last_limit_value = float(limit)
@@ -94,14 +73,12 @@ class LimitCalculator:
         sample = self.__sampleReading(reading)
         
         if not self.last_limit_has:     
-            self.set_last_limit(self.limit_default)    
+            self.set_last_limit(self.limit_max)    
                 
         elapsed = round((datetime.now() - self.last_command_time).total_seconds(), 2)
         overshoot = self.__convert_reading_to_relative_overshoot(sample)
-        limit = self.__convert_overshoot_to_limit(overshoot)
-        hint = None
+        limit = self.__convert_overshoot_to_limit(self.last_limit_value, overshoot)
         
-
         # Ignore conditions on calibration
         if not is_calibration:
 
@@ -120,10 +97,6 @@ class LimitCalculator:
         command: float | None = None
 
         if not (is_throttled or is_hysteresis_suppressed):
-            hint = self.__get_production_hint()
-            if hint is not None:
-                limit = self.__apply_production_hint(overshoot, limit, hint)
-
             command = self.__convert_to_command(limit)
             self.last_command_time = datetime.now()           
             self.set_last_limit(limit)
@@ -136,7 +109,6 @@ class LimitCalculator:
                                      overshoot=overshoot,
                                      limit=limit,
                                      command=command,
-                                     hint=hint,
                                      is_calibration=is_calibration,
                                      is_throttled=is_throttled,
                                      is_hysteresis_suppressed=is_hysteresis_suppressed,
@@ -152,7 +124,6 @@ class LimitCalculator:
         self.last_limit_value: float = self.config.command.min_power
         self.last_limit_has: bool = False
         self.is_calibrated: bool = False
-        self.production_hint = None
         logging.debug("Limit context was reseted")
 
     def __get_smoothing_avg(self, reading: float) -> float:
@@ -166,17 +137,8 @@ class LimitCalculator:
     def __convert_reading_to_relative_overshoot(self, reading: float) -> float:
         return (self.config.command.target - reading) * -1
 
-    def __convert_overshoot_to_limit(self, overshoot: float) -> float:
-        return self.__cap_limit(self.last_limit_value + overshoot)
-
-    def __apply_production_hint(self, overshoot: float, limit: float, hint: float) -> float:      
-        if hint is None:
-            return limit
-        elif overshoot < 0 and hint < limit:
-            return hint
-        else:
-            return limit
-        
+    def __convert_overshoot_to_limit(self, base: float, overshoot: float) -> float:
+        return self.__cap_limit(base + overshoot)
 
     def __hysteresis_threshold_breached(self, limit: float) -> bool:
         if self.config.command.hysteresis == 0:
@@ -208,11 +170,6 @@ class LimitCalculator:
         seg.append(f"Overshoot: {result.overshoot:>8.2f}")
         seg.append(f"Limit: {result.limit:>8.2f}")
         
-        if result.hint is not None:
-            seg.append(f"Hint: {result.hint:>8.2f}")
-        else:
-            seg.append(f"Hint:     None")
-
         if result.command is not None:
             seg.append(f"Command: {result.command:>8.2f}")
         else:
@@ -222,6 +179,6 @@ class LimitCalculator:
         seg.append(f"Thr: {int(result.is_throttled)}")
         seg.append(f"Hys: {int(result.is_hysteresis_suppressed)}")
         seg.append(f"Ret: {int(result.is_retransmit)}")
-        seg.append(f"Elapsed: {result.elapsed:.2f}")
+        seg.append(f"El: {result.elapsed:.2f}")
 
         logging.debug(" | ".join(seg))

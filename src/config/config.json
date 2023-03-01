@@ -9,8 +9,7 @@
         "topics": {
             "readPower": "",
             "writeCommand": null,
-            "inverterStatus": null,
-            "inverterPower": null
+            "inverterStatus": null
         },
 
         "auth": {
@@ -27,8 +26,7 @@
         "throttle": 5,
         "hysteresis": 0.0,
         "retransmit": 0,
-        "defaultLimit": null,
-        "hintMultiplier": 1.0
+        "defaultLimit": null
     },
 
     "reading": {

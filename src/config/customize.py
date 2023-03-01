@@ -31,8 +31,3 @@ def command_to_generic(command: float, command_type: int, command_min: float, co
 def parse_inverter_status_payload(payload: bytes, current_status: bool) -> bool | None:
     s = payload.decode().lower()
     return s == "1" or s == "true"
-
-# Convert ongoing inverter power production payload to float
-def parse_inverter_power_payload(payload: bytes)-> float | None:
-    s = payload.decode()
-    return float(s)
