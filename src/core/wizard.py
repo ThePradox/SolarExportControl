@@ -206,7 +206,7 @@ class ConfigWizard:
         return self.__prompt_input(prompt, self.__vali_req_pos_int)
 
     def __prompt_command_target(self) -> int:
-        prompt = "Core: Enter your power target in watts (can be negative):\n"
+        prompt = "Core: Enter your power target in watts (should be negative):\n"
         return self.__prompt_input(prompt, self.__vali_req_int)
 
     def __prompt_command_type(self) -> appconfig.InverterCommandType:
