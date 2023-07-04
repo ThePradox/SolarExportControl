@@ -1,9 +1,5 @@
 # SolarExportControl
 
-## V 2: Now with home assistant integration
-
-![Screenshot](./docs/screenshots/HomeAssistantIntegration_Basic.png)
-
 ## Description
 
 This application takes your current electric power consumption (from a digital electricity meter, for example) and compares it to a defined target value.
@@ -11,6 +7,10 @@ This application takes your current electric power consumption (from a digital e
 If your power consumption is higher than your target: Lower the power limit of your solar inverter
 
 If your consumption is lower than your target: Increase the limit on your solar inverter
+
+Also features an optional home assistant integration:
+
+![Screenshot](./docs/screenshots/HomeAssistantIntegration_Basic.png)
 
 ## Original setup
 
