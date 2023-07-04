@@ -1,20 +1,16 @@
 # SolarExportControl
 
-## Disclaimer: Looking for testers and feedback
-
-This application was tested multiple days on my setup. Further tests on other setups are necessary!
-
-## V 2: Now with home assistant integration
-
-![Screenshot](./docs/screenshots/HomeAssistantIntegration_Basic.png)
-
 ## Description
 
-This application takes your current electric power consumption (from a digital electric meter for example) and compares it to a defined target value.
+This application takes your current electric power consumption (from a digital electricity meter, for example) and compares it to a defined target value.
 
-If your consumption is greater than your target: Lower the limit of your solar inverter
+If your power consumption is higher than your target: Lower the power limit of your solar inverter
 
 If your consumption is lower than your target: Increase the limit on your solar inverter
+
+Also features an optional home assistant integration:
+
+![Screenshot](./docs/screenshots/HomeAssistantIntegration_Basic.png)
 
 ## Original setup
 
@@ -25,6 +21,7 @@ If your consumption is lower than your target: Increase the limit on your solar 
 
 - Configurable command behaviour:
   - Min limit
+  - Default limit
   - Relative (%) or absolute (W)
   - Throttle amount of commands
   - Minimum difference to last command (hysteresis)
@@ -79,9 +76,9 @@ Alternative: Use the `--wizard` argument to get guided through config creation
 
 You must at least check 2 things:
 
-**1. What data is my power meter sending?**
+**1. What data is my electricity meter sending?**
 
-This application needs the value as a number, but your power meter may publish json or an other arbitrary payload. You must edit the `parse_power_payload` function to convert the payload to a number. See ['parse_power_payload'](./docs/Customize.md#required-parse_power_payload) for examples.
+This application needs the value as a number, but your electricity meter may publish json or an other arbitrary payload. You must edit the `parse_power_payload` function to convert the payload to a number. See ['parse_power_payload'](./docs/Customize.md#required-parse_power_payload) for examples.
 
 **2. How should the calculated limit be formated before publishing it?**
 
@@ -110,18 +107,6 @@ See [Docs](/docs/Mqtt.md)
 
 See [Docs](/docs/Docker.md)
 
-## Config suggestions
+## Testers and feedback are appreciated
 
-For `config.command.hysteresis` I would suggest about 1-3% of your `command.maxPower`
-
-If your power reading interval is less than or around 10 seconds:
-
-- `config.command.throttle: 10`
-- `config.reading.smoothing: "avg"`
-- `config.reading.smoothingSampleSize:8`
-
-If your power reading interval is slower you are free to turn especially `config.command.throttle` to `0`.
-
-If your power reading interval is very slow (1 minute or greater) you should also turn `config.reading.smoothing` to `none`
-
-However this basically will change the inverter power limit every interval since every power reading is different.
+Feel free to share your setup or ask for help in the issue section.

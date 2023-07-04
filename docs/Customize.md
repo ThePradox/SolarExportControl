@@ -93,9 +93,9 @@ def command_to_payload(command: float, command_type: int, command_min: float, co
 def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
 ```
 
-Only required if `config.mqtt.topics.status` is not empty
+Only required if `config.mqtt.topics.inverterStatus` is not empty
 
-This function can be be edited to return the status from the payload of `config.mqtt.topics.status` as `bool` (True=Active / False=Inactive). Return `None` to discard message
+This function can be be edited to return the status from the payload of `config.mqtt.topics.inverterStatus` as `bool` (True=Active / False=Inactive). Return `None` to discard message
 
 <details><summary>Example</summary>
 
@@ -108,7 +108,6 @@ def parse_status_payload(payload: bytes, current_status: bool) -> bool | None:
 ```
 
 </details>
-
 
 ## Optional: `command_to_generic`
 

@@ -2,10 +2,9 @@ import logging
 import statistics
 import core.appconfig as appconfig
 import config.customize as customize
-from typing import Deque, Callable
+from typing import Deque, Callable, Tuple
 from collections import deque
 from datetime import datetime
-
 
 # target: configured power target (config.command.target)
 # reading: parsed value from mqtt read power topic
@@ -21,13 +20,13 @@ class LimitCalculatorResult:
         self.sample: float = sample
         self.overshoot: float = overshoot
         self.limit: float = limit
-        self.command: float | None = command
+        self.command: float | None = command      
         self.is_calibration: bool = is_calibration
         self.is_throttled: bool = is_throttled
         self.is_hysteresis_suppressed: bool = is_hysteresis_suppressed
         self.is_retransmit: bool = is_retransmit
         self.elapsed: float = elapsed
-
+       
 
 class LimitCalculator:
     def __init__(self, config: appconfig.AppConfig) -> None:
@@ -38,7 +37,8 @@ class LimitCalculator:
         self.is_calibrated: bool = False
         self.limit_max: float = config.command.max_power
         self.limit_min: float = config.command.min_power
-        
+        self.limit_default: float = config.command.default_limit
+
         deqSize: int = self.config.reading.smoothingSampleSize if self.config.reading.smoothingSampleSize > 0 else 1
 
         sampleFunc: Callable[[float], float]
@@ -73,12 +73,12 @@ class LimitCalculator:
         sample = self.__sampleReading(reading)
         
         if not self.last_limit_has:     
-            self.set_last_limit(float(self.limit_max))    
+            self.set_last_limit(self.limit_max)    
                 
         elapsed = round((datetime.now() - self.last_command_time).total_seconds(), 2)
         overshoot = self.__convert_reading_to_relative_overshoot(sample)
-        limit = self.__convert_overshot_to_limit(overshoot)
-
+        limit = self.__convert_overshoot_to_limit(self.last_limit_value, overshoot)
+        
         # Ignore conditions on calibration
         if not is_calibration:
 
@@ -115,11 +115,8 @@ class LimitCalculator:
                                      is_retransmit=is_retransmit,
                                      elapsed=elapsed)
 
-    def get_command_min(self) -> float:
-        return self.__convert_to_command(self.limit_min)
-
-    def get_command_max(self) -> float:
-        return self.__convert_to_command(self.limit_max)
+    def get_command_default(self) -> float:
+        return self.__convert_to_command(self.limit_default)
 
     def reset(self) -> None:
         self.__samples.clear()
@@ -140,8 +137,8 @@ class LimitCalculator:
     def __convert_reading_to_relative_overshoot(self, reading: float) -> float:
         return (self.config.command.target - reading) * -1
 
-    def __convert_overshot_to_limit(self, overshoot: float) -> float:
-        return self.__cap_limit(self.last_limit_value + overshoot)
+    def __convert_overshoot_to_limit(self, base: float, overshoot: float) -> float:
+        return self.__cap_limit(base + overshoot)
 
     def __hysteresis_threshold_breached(self, limit: float) -> bool:
         if self.config.command.hysteresis == 0:
@@ -172,7 +169,7 @@ class LimitCalculator:
         seg.append(f"Sample: {result.sample:>8.2f}")
         seg.append(f"Overshoot: {result.overshoot:>8.2f}")
         seg.append(f"Limit: {result.limit:>8.2f}")
-
+        
         if result.command is not None:
             seg.append(f"Command: {result.command:>8.2f}")
         else:
@@ -182,6 +179,6 @@ class LimitCalculator:
         seg.append(f"Thr: {int(result.is_throttled)}")
         seg.append(f"Hys: {int(result.is_hysteresis_suppressed)}")
         seg.append(f"Ret: {int(result.is_retransmit)}")
-        seg.append(f"Elapsed: {result.elapsed:.2f}")
+        seg.append(f"El: {result.elapsed:.2f}")
 
         logging.debug(" | ".join(seg))

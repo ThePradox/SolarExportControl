@@ -74,12 +74,12 @@ class MqttConfig:
                  port: int | None = None,
                  keepalive: int | None = None,
                  protocol: int | None = None,
-                 client_id: str | None = None,          
+                 client_id: str | None = None,
                  auth: MqttAuthConfig | None = None) -> None:
         self.host: str = host
         self.port: int = port if port is not None else 1883
         self.keepalive: int = keepalive if keepalive is not None else 60
-        self.protocol: int = protocol if protocol is not None else mqtt.MQTTv311      
+        self.protocol: int = protocol if protocol is not None else mqtt.MQTTv311
         self.client_id: str = client_id if client_id is not None else "solar-export-control"
         self.topics: MqttTopicConfig = topics
         self.auth: MqttAuthConfig | None = auth
@@ -145,16 +145,18 @@ class MqttConfig:
 
 
 class MqttTopicConfig:
-    def __init__(self, read_power: str, write_command: str | None, status: str | None) -> None:
+    def __init__(self, read_power: str, write_command: str | None, inverter_status: str | None, inverter_power: str | None) -> None:
         self.read_power: str = read_power
         self.write_command: str | None = write_command
-        self.inverter_status: str | None = status
+        self.inverter_status: str | None = inverter_status
+        self.inverter_power: str | None = inverter_power
 
     def to_json(self) -> dict:
         return {
             "readPower": str(self.read_power),
             "writeCommand": self.write_command,
             "inverterStatus": self.inverter_status
+           # "inverterPower": self.inverter_power
         }
 
     @staticmethod
@@ -167,11 +169,15 @@ class MqttTopicConfig:
         if type(j_write_command) is not str or not j_write_command:
             j_write_command = None
 
-        j_status = json.get("inverterStatus")
-        if type(j_status) is not str or not j_status:
-            j_status = None
+        j_inv_status = json.get("inverterStatus")
+        if type(j_inv_status) is not str or not j_inv_status:
+            j_inv_status = None
 
-        return MqttTopicConfig(read_power=j_read_power, write_command=j_write_command, status=j_status)
+        j_inv_power = json.get("inverterPower")
+        if type(j_inv_power) is not str or not j_inv_power:
+            j_inv_power = None
+
+        return MqttTopicConfig(read_power=j_read_power, write_command=j_write_command, inverter_status=j_inv_status, inverter_power=j_inv_power)
 
 
 class MqttAuthConfig:
@@ -199,7 +205,7 @@ class MqttAuthConfig:
 
 
 class CommandConfig:
-    def __init__(self, target: int, min_power: float, max_power: float, type: InverterCommandType, throttle: int, hysteresis: float, retransmit: int) -> None:
+    def __init__(self, target: int, min_power: float, max_power: float, type: InverterCommandType, throttle: int, hysteresis: float, retransmit: int, default_limit: float) -> None:
         self.target: int = target
         self.min_power: float = min_power
         self.max_power: float = max_power
@@ -207,7 +213,8 @@ class CommandConfig:
         self.throttle: int = throttle
         self.hysteresis: float = hysteresis
         self.retransmit: int = retransmit
-
+        self.default_limit: float = default_limit
+      
     def to_json(self) -> dict:
         match self.type:
             case InverterCommandType.ABSOLUTE:
@@ -224,7 +231,8 @@ class CommandConfig:
             "type": str_type,
             "throttle": int(self.throttle),
             "hysteresis": float(self.hysteresis),
-            "retransmit": int(self.retransmit)
+            "retransmit": int(self.retransmit),
+            "defaultLimit": float(self.default_limit)
         }
 
     @staticmethod
@@ -273,6 +281,12 @@ class CommandConfig:
         if type(j_retransmit) is not int or j_retransmit < 0:
             raise ValueError(f"CommandConfig: Invalid retransmit: '{j_retransmit}'")
 
+        j_default_limit = json.get("defaultLimit")
+        if type(j_default_limit) is int:
+            j_default_limit = float(j_default_limit)
+        elif type(j_default_limit) is not float:
+            j_default_limit = j_max_power
+
         return CommandConfig(
             target=j_target,
             min_power=j_min_power,
@@ -280,7 +294,8 @@ class CommandConfig:
             type=e_type,
             throttle=j_throttle,
             hysteresis=j_hysteresis,
-            retransmit=j_retransmit
+            retransmit=j_retransmit,
+            default_limit=j_default_limit
         )
 
 
@@ -326,7 +341,7 @@ class CustomizeConfig:
         self.command = command
 
     def to_json(self) -> dict:
-        return {        
+        return {
             "command": self.command
         }
 

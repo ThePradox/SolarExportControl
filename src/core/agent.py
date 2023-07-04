@@ -17,6 +17,7 @@ class ExportControlAgent:
         self.helper.on_connect(self.__on_connect_success, self.__on_connect_error)
         self.helper.on_power_reading(self.__on_power_reading, self.__parser_power_reading)
         self.helper.on_inverter_status(self.__on_inverter_status, self.__parser_inverter_status)
+        #self.helper.on_inverter_power(self.__on_inverter_power, self.__parser_inverter_power)
         self.helper.on_meta_cmd_enabled(self.__on_meta_cmd_active)
         self.helper.setup_will()
 
@@ -30,8 +31,9 @@ class ExportControlAgent:
     def __on_connect_success(self) -> None:
         self.__ha_discovery()
         self.helper.subscribe_meta_cmd_enabled()
-        self.helper.subscribe_inverter_status()
         self.helper.publish_meta_status_online(True)
+        self.helper.subscribe_inverter_status()
+        #self.helper.subscribe_inverter_power()
         self.__start_setup_mode()
 
     def __on_connect_error(self, rc: Any) -> None:
@@ -101,13 +103,18 @@ class ExportControlAgent:
 
         if active:         
             logging.info(f"Application status: Active -> {reason}")
-            self.limitcalc.reset()
+            
+            if not force:
+                self.limitcalc.reset()
+
             self.helper.subscribe_power_reading()         
+            #self.helper.subscribe_inverter_power()
         else:
             logging.info(f"Application status: Inactive -> {reason}")
             self.helper.unsubscribe_power_reading()
+            #self.helper.unsubscribe_inverter_power()
             if not meta_status and not meta_status_retr and self.config.meta.reset_inverter_on_inactive and self.__inverter_status:
-                self.__send_command(self.limitcalc.get_command_max())
+                self.__send_command(self.limitcalc.get_command_default())
 
     def __send_command(self, command: float) -> None:
         try:

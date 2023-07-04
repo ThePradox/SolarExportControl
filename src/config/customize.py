@@ -27,7 +27,7 @@ def command_to_payload(command: float, command_type: int, command_min: float, co
 def command_to_generic(command: float, command_type: int, command_min: float, command_max: float, config:dict) -> None:
     pass
 
-# Convert ongoing status update payload to bool (True = Active /False = Inactive)
+# Convert ongoing inverter status update payload to bool (True = Active /False = Inactive)
 def parse_inverter_status_payload(payload: bytes, current_status: bool) -> bool | None:
     s = payload.decode().lower()
     return s == "1" or s == "true"
