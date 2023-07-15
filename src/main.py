@@ -21,7 +21,7 @@ args = argparser.parse_args()
 
 config_path = pathlib.Path(args.config).resolve()
 loglvl = logging.DEBUG if args.verbose else logging.INFO
-logging.basicConfig(level=loglvl, format="%(asctime)s | %(levelname).3s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+logging.basicConfig(stream=sys.stdout, level=loglvl, format="%(asctime)s | %(levelname).3s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 if args.wizard:
     wizard = ConfigWizard(str(config_path))
